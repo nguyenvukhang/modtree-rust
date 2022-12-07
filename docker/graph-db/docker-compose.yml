@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  graph-db:
+    image: modtree/graph-db
+    stdin_open: true
+    environment:
+      - NEO4J_AUTH=none
+    tty: true
+    ports:
+      - "7474:7474"
+      - "7687:7687"
