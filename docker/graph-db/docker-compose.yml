@@ -4,6 +4,8 @@ services:
   graph-db:
     image: modtree/graph-db
     stdin_open: true
+    volumes:
+      - ./data:/data
     environment:
       - NEO4J_AUTH=none
     tty: true
