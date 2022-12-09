@@ -1,27 +1,14 @@
 use serde::{Deserialize, Serialize};
+
 mod errors;
-
 pub use errors::*;
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-/// An error that can occur in the `mongodb` crate. The inner
-/// [`ErrorKind`](enum.ErrorKind.html) is wrapped in an `Arc` to allow the errors to be
-/// cloned.
-// #[derive(Clone, Debug, Error)]
-// #[error("{kind}")]
-// #[non_exhaustive]
-// pub struct Error {
-//     /// The type of error that occurred.
-//     pub kind: Box<ErrorKind>,
-//     labels: HashSet<String>,
-//     pub(crate) wire_version: Option<i32>,
-//     #[source]
-//     pub(crate) source: Option<Box<Error>>,
-// }
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug)]
 pub enum ModtreeError {}
 
+/// Short summary of a module found when pulling a module list.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ModuleSummary {
     #[serde(alias = "moduleCode")]
@@ -62,6 +49,7 @@ impl Default for Workload {
     }
 }
 
+/// Literally everything about a module.
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ModuleDetails {
     #[serde(default, alias = "acadYear")]
