@@ -259,10 +259,12 @@ name = "database"
 version = "0.0.1"
 dependencies = [
  "dotenv",
+ "fetcher",
  "futures",
  "mongodb",
  "serde",
  "tokio",
+ "types",
 ]
 
 [[package]]
@@ -333,11 +335,13 @@ dependencies = [
 name = "fetcher"
 version = "0.0.1"
 dependencies = [
+ "dotenv",
  "futures",
  "reqwest",
  "serde",
  "serde_json",
  "tokio",
+ "types",
 ]
 
 [[package]]
@@ -1822,6 +1826,14 @@ name = "typenum"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
+
+[[package]]
+name = "types"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "unicode-bidi"
