@@ -31,6 +31,7 @@ impl Default for PrereqTree {
 pub enum Workload {
     String(String),
     Numbers(Vec<u8>),
+    Fractions(Vec<f64>),
 }
 
 impl Default for Workload {
