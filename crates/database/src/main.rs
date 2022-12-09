@@ -1,7 +1,14 @@
+mod types;
+
 use mongodb::bson::{doc, Document};
-use mongodb::options::{ClientOptions, Credential, ServerAddress};
+use mongodb::options::{
+    ClientOptions, Credential, DropDatabaseOptions, FindOptions, ServerAddress,
+};
 use mongodb::{Client, Database};
+use std::env;
 use std::error;
+
+use types::Book;
 
 type BoxErr = Box<dyn error::Error>;
 
@@ -10,10 +17,11 @@ fn some_string(s: &str) -> Option<String> {
 }
 
 async fn get_client() -> Result<Client, BoxErr> {
+    dotenv::dotenv().expect(".env file not found");
     let host = ServerAddress::parse("localhost:27017")?;
     let creds = Credential::builder()
-        .username(some_string("modtree"))
-        .password(some_string("modtree"))
+        .username(env::var("MONGO_DB_USERNAME").ok())
+        .password(env::var("MONGO_DB_PASSWORD").ok())
         .build();
     let opts = ClientOptions::builder()
         .hosts(vec![host])
@@ -50,19 +58,46 @@ async fn list_collections(db: &Database) -> Result<(), BoxErr> {
     Ok(())
 }
 
+/// Deletes all databases except for "admin", "config", and "local"
+async fn reset_all_databases(client: &mut Client) -> Result<(), Box<dyn error::Error>> {
+    let databases = client.list_database_names(None, None).await?;
+    let to_delete = databases
+        .iter()
+        .filter(|name| match name.as_ref() {
+            "admin" | "config" | "local" => false,
+            _ => true,
+        })
+        .map(|name| client.database(name));
+    for db in to_delete {
+        println!("deleting database [{}]", db.name());
+        db.drop(DropDatabaseOptions::builder().build()).await?;
+    }
+    Ok(())
+}
+
 async fn mongo() -> Result<(), Box<dyn error::Error>> {
     let mut client = get_client().await.unwrap();
     list_databases(&mut client).await.unwrap();
-    let mut db = client.database("hello");
-    db.create_collection("books", None).await.unwrap();
-    insert_data(&mut db).await?;
-    list_collections(&db).await?;
-    // List the names of the databases in that deployment.
+    reset_all_databases(&mut client).await.unwrap();
+    // let mut db = client.database("hello");
+    // // insert_data(&mut db).await?;
+    // list_collections(&db).await?;
+    // let filter = doc! { "author": "George Orwell" };
+    // let find_options = FindOptions::builder().sort(doc! { "title": 1 }).build();
+    // let mut cursor = db
+    //     .collection::<Book>("books")
+    //     .find(filter, find_options)
+    //     .await?;
+    // // Iterate over the results of the cursor.
+    // while let Some(book) = cursor.try_next().await? {
+    //     println!("title: {}", book.title);
+    // }
+    // // List the names of the databases in that deployment.
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    mongo().await.ok();
+    mongo().await.unwrap();
 }

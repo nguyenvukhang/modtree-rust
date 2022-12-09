@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 mongodb = "2.3.1"
 tokio = { version = "1.23.0", features = ["full"] }
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+dotenv = "0.15.0"
