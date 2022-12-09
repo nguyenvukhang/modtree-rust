@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  graph-db:
+    image: modtree/sql-db
+    stdin_open: true
+    tty: true
+    environment:
+      - POSTGRES_PASSWORD=modtree
+    volumes:
+      - ./data:/data
+    ports:
+      - "5432:5432"
