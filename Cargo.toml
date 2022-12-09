@@ -17,4 +17,5 @@ bench = false
 [workspace]
 members = [
   "crates/postgres",
+  "crates/fetcher",
 ]
