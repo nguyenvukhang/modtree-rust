@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 pub struct Getter {
     url: String,
-    path: PathBuf,
+    pub path: PathBuf,
 }
 
 impl Getter {
@@ -26,7 +26,18 @@ impl Getter {
     }
 
     pub fn already_exists(&self) -> bool {
-        self.path.is_file()
+        if !self.path.is_file() {
+            return false;
+        } else {
+            let mut file = fs::File::open(&self.path).unwrap();
+            let mut buf = String::new();
+            use std::io::Read;
+            file.read_to_string(&mut buf).unwrap();
+            if buf.is_empty() {
+                self.clear_cache().ok();
+            }
+            return !buf.is_empty();
+        }
     }
 
     pub async fn get<T>(&self, buffer: &mut T) -> Result<(), Box<dyn error::Error>>
@@ -70,6 +81,12 @@ impl Getter {
                 Ok(json)
             }
         }
+    }
+
+    /// loads a module from filesystem
+    pub fn get_module2(self) -> Result<ModuleDetails, Box<dyn error::Error>> {
+        let file = fs::File::open(&self.path)?;
+        Ok(serde_json::from_reader::<fs::File, ModuleDetails>(file)?)
     }
 
     pub async fn debug_fetch(&self) -> Result<(), Box<dyn error::Error>> {
