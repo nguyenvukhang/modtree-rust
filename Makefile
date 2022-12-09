@@ -3,6 +3,6 @@ test:
 
 build:
 	cargo build --workspace --release
-	./target/release/fetcher
+	./target/release/database
 
 .PHONY: test build

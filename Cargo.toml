@@ -18,4 +18,5 @@ bench = false
 members = [
   "crates/postgres",
   "crates/fetcher",
+  "crates/database",
 ]

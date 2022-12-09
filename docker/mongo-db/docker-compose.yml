@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  graph-db:
+    image: modtree/mongo-db
+    stdin_open: true
+    tty: true
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: modtree
+      MONGO_INITDB_ROOT_PASSWORD: modtree
+    volumes:
+      - ./data:/data/db
+    ports:
+      - 27017:27017

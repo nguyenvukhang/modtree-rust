@@ -64,6 +64,5 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     println!("ok: {}", ok.len());
     println!("not: {}", not.len());
     println!("results: {:?}", results.get(0));
-
     Ok(())
 }
