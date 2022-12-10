@@ -110,3 +110,15 @@ impl From<ModuleDetails> for Module {
         }
     }
 }
+
+impl Module {
+    pub fn code(&self) -> String {
+        self.module_code.to_string()
+    }
+}
+
+impl ModuleSummary {
+    pub fn code(&self) -> String {
+        self.module_code.to_string()
+    }
+}
