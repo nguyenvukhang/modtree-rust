@@ -14,5 +14,5 @@ pub enum Error {
     #[error("Invalid data: {0}")]
     InvalidData(String),
     #[error("Mongo DB client is not running")]
-    MongoDbClientNotRunning
+    MongoDbClientNotRunning,
 }

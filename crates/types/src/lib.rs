@@ -5,18 +5,6 @@ pub use errors::*;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug)]
-pub enum ModtreeError {}
-
-/// Short summary of a module found when pulling a module list.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ModuleSummary {
-    #[serde(alias = "moduleCode")]
-    pub module_code: String,
-    pub title: String,
-    pub semesters: Vec<u8>,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PrereqTree {
@@ -49,9 +37,20 @@ impl Default for Workload {
     }
 }
 
-/// Literally everything about a module.
+/// Short summary of a module.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ModuleShort {
+    #[serde(alias = "moduleCode")]
+    pub module_code: String,
+    pub title: String,
+    pub semesters: Vec<u8>,
+}
+
+/// [nusmods] Literally everything about a module.
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct ModuleDetails {
+pub struct Module {
+    #[serde(default)]
+    _id: bson::oid::ObjectId,
     #[serde(default, alias = "acadYear")]
     acad_year: String,
     #[serde(default)]
@@ -78,58 +77,13 @@ pub struct ModuleDetails {
     workload: Workload,
 }
 
-/// Condensed version of a module, enough to execute business logic.
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct Module {
-    #[serde(default)]
-    _id: Option<String>,
-    #[serde(default, alias = "acadYear")]
-    acad_year: String,
-    #[serde(default)]
-    preclusion: String,
-    #[serde(default)]
-    title: String,
-    #[serde(default)]
-    prerequisite: String,
-    #[serde(default, alias = "moduleCode")]
-    module_code: String,
-    #[serde(default, alias = "prereqTree")]
-    prereq_tree: PrereqTree,
-    #[serde(default, alias = "fulfillRequirements")]
-    fulfill_requirements: Vec<String>,
-}
-
-impl From<ModuleDetails> for Module {
-    fn from(m: ModuleDetails) -> Self {
-        Self {
-            _id: None,
-            acad_year: m.acad_year,
-            preclusion: m.preclusion,
-            title: m.title,
-            prerequisite: m.prerequisite,
-            module_code: m.module_code,
-            prereq_tree: m.prereq_tree,
-            fulfill_requirements: m.fulfill_requirements,
-        }
+impl ModuleShort {
+    pub fn code(&self) -> String {
+        self.module_code.to_string()
     }
 }
 
 impl Module {
-    pub fn code(&self) -> String {
-        self.module_code.to_string()
-    }
-    pub fn academic_year(&self) -> String {
-        self.acad_year.to_string()
-    }
-}
-
-impl ModuleSummary {
-    pub fn code(&self) -> String {
-        self.module_code.to_string()
-    }
-}
-
-impl ModuleDetails {
     pub fn code(&self) -> String {
         self.module_code.to_string()
     }

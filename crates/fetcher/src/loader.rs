@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use types::{ModuleDetails, ModuleSummary, Result};
+use types::{Module, ModuleShort, Result};
 
 #[derive(Debug)]
 pub struct Loader {
@@ -42,13 +42,23 @@ impl Loader {
 
     /// Load list of modules from NUSMods. This pulls an extremely minimal list of modules that
     /// only contains module code, title, and semesters offered.
-    pub async fn load_module_list(&self) -> Result<Vec<ModuleSummary>> {
+    pub async fn load_module_list(&self) -> Result<Vec<ModuleShort>> {
         Ok(self.load("moduleList.json").await?)
+    }
+
+    /// Loads all full-info modules.
+    pub async fn load_all_modules(&self) -> Result<Vec<Module>> {
+        let shorts: Vec<ModuleShort> = self.load("moduleList.json").await?;
+        let handles = shorts.iter().map(|module| async move {
+            self.load_module(&module.code()).await
+        });
+        let results = futures::future::join_all(handles).await;
+        Ok(results.into_iter().filter_map(|v| v.ok()).collect())
     }
 
     /// Load list of modules from NUSMods. This pulls an extremely minimal list of modules that
     /// only contains module code, title, and semesters offered.
-    pub async fn load_module(&self, code: &str) -> Result<ModuleDetails> {
+    pub async fn load_module(&self, code: &str) -> Result<Module> {
         Ok(self.load(&format!("modules/{code}.json")).await?)
     }
 

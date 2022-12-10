@@ -1,4 +1,4 @@
-use mongodb::Collection;
+use crate::collection::ModuleCollection;
 use types::{Module, Result};
 
 /// wrapper for the standard mongo-db database with project-specific tooling
@@ -9,8 +9,8 @@ impl Database {
         Self(db)
     }
 
-    pub fn modules(&self) -> Collection<Module> {
-        self.0.collection::<Module>("modules")
+    pub fn modules(&self) -> ModuleCollection {
+        ModuleCollection::new(self.0.collection::<Module>("modules"))
     }
 
     pub async fn first_time_setup(&self) -> Result<()> {

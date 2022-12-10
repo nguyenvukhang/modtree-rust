@@ -38,7 +38,7 @@ impl Client {
     }
 
     /// The database of modtree.
-    pub async fn modtree_db(&mut self) -> Database {
+    pub fn modtree_db(&mut self) -> Database {
         Database::new(self.c.database("modtree"))
     }
 
