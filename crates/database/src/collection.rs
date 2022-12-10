@@ -1,5 +1,5 @@
 use mongodb::bson::{doc, to_document};
-use mongodb::options::{FindOneOptions, UpdateOptions};
+use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
 use types::{Module, Result};
 
@@ -8,6 +8,21 @@ pub struct ModuleCollection(mongodb::Collection<Module>);
 impl ModuleCollection {
     pub fn new(x: mongodb::Collection<Module>) -> Self {
         Self(x)
+    }
+
+    pub async fn import_academic_year(
+        &self,
+        academic_year: &str,
+    ) -> Result<()> {
+        use fetcher::Loader;
+        let loader = Loader::new(academic_year)?;
+        println!("Loading modules from JSON...");
+        let modules = loader.load_all_modules().await?;
+        println!("Done loading all modules from JSON");
+        println!("Inserting modules to mongo-db...");
+        self.insert_many_modules(&modules).await;
+        println!("Done.");
+        Ok(())
     }
 
     pub async fn insert_one_module(

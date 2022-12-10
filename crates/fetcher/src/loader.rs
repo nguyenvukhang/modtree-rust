@@ -26,7 +26,7 @@ impl Loader {
         dotenv::dotenv().expect(".env file not found");
         let root = env::var("MODTREE_CACHE_DIR").map(PathBuf::from)?;
         if root.is_relative() {
-            Err(types::PathError::RequiresAbsolutePath(root.to_owned()))?
+            Err(types::Error::RequiresAbsolutePath(root.clone()))?
         }
         let academic_year = util::validate_academic_year(academic_year, '-')?;
         let base_url = PathBuf::from("https://api.nusmods.com/v2");

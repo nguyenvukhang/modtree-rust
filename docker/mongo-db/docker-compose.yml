@@ -1,7 +1,8 @@
 version: "3.9"
 
 services:
-  graph-db:
+  main:
+    container_name: modtree-mongo-db
     image: modtree/mongo-db
     stdin_open: true
     tty: true
