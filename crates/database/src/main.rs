@@ -52,6 +52,7 @@ async fn check_schema() -> Result<()> {
     let mod_coll = db.modules();
     mod_coll.drop().await?;
     mod_coll.import_academic_year("2021-2022").await?;
+    mod_coll.import_academic_year("2022-2023").await?;
     println!("Successful JSON import");
     let modules = mod_coll.list_all().await?;
     println!("Successful struct collect");
