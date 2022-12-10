@@ -13,4 +13,8 @@ pub enum Error {
     UnableToLoadAllModules,
     #[error("Path needs to be absolute: {0}")]
     RequiresAbsolutePath(PathBuf),
+    #[error("Not found")]
+    NotFound,
+    #[error("Pre-requisites not satisfied for module: {0} -> {1}")]
+    PrerequisitesNotSatisfied(String, String),
 }

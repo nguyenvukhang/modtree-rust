@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 mod errors;
 mod prereqtree;
@@ -73,6 +74,9 @@ impl Module {
     }
     pub fn academic_year(&self) -> String {
         self.acad_year.to_string()
+    }
+    pub fn satisfied_by(&self, done: &HashSet<String>) -> Result<()> {
+        self.prereq_tree.satisfied_by(self.code(), done)
     }
 }
 

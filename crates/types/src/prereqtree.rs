@@ -1,10 +1,10 @@
+use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PrereqTree {
-    Empty,
     Only(String),
     And { and: Vec<PrereqTree> },
     Or { or: Vec<PrereqTree> },
@@ -17,15 +17,24 @@ impl Default for PrereqTree {
 }
 
 impl PrereqTree {
-    fn satisfied_by(&self, done: &HashSet<String>) -> bool {
+    pub(crate) fn satisfied_by(
+        &self,
+        code: String,
+        done: &HashSet<String>,
+    ) -> Result<()> {
+        let ok = self._satisfied_by(done);
+        let tree = format!("{:?}", self);
+        let err = Error::PrerequisitesNotSatisfied(code, tree);
+        ok.then_some(()).ok_or(Box::new(err))
+    }
+    fn _satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
-            PrereqTree::Empty => true,
-            PrereqTree::Only(only) => done.contains(only),
+            PrereqTree::Only(only) => only.is_empty() || done.contains(only),
             PrereqTree::And { and } => {
-                and.iter().fold(true, |a, p| a && p.satisfied_by(done))
+                and.iter().fold(true, |a, p| a && p._satisfied_by(done))
             }
             PrereqTree::Or { or } => {
-                or.iter().fold(or.is_empty(), |a, p| a || p.satisfied_by(done))
+                or.iter().fold(or.is_empty(), |a, p| a || p._satisfied_by(done))
             }
         }
     }
@@ -35,21 +44,17 @@ impl PrereqTree {
 macro_rules! test {
     ($tree:expr, $arr:expr, $expect:expr) => {{
         let set = HashSet::from_iter($arr.iter().map(|v| v.to_string()));
-        assert!(!$expect ^ $tree.satisfied_by(&set));
+        assert!(!$expect ^ $tree._satisfied_by(&set));
     }};
-}
-
-/// Single-requirement PrereqTree
-#[cfg(test)]
-fn t(s: &str) -> PrereqTree {
-    PrereqTree::Only(s.to_string())
 }
 
 #[test]
 fn prereqtree_satisfies_test() {
     use PrereqTree::*;
-    println!();
-    assert!(PrereqTree::Empty.satisfied_by(&HashSet::new()));
+    fn t(s: &str) -> PrereqTree {
+        PrereqTree::Only(s.to_string())
+    }
+    assert!(PrereqTree::Empty._satisfied_by(&HashSet::new()));
     test!(t("CS2040"), ["CS1231", "CS1010"], false);
     test!(t("CS2030"), ["CS2030"], true);
     // tests for "and"

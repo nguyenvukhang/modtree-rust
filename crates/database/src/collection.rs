@@ -1,7 +1,7 @@
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
-use types::{Module, Result};
+use types::{Error, Module, Result};
 
 pub struct ModuleCollection(mongodb::Collection<Module>);
 
@@ -70,11 +70,12 @@ impl ModuleCollection {
         &self,
         module_code: &str,
         acad_year: &str,
-    ) -> Result<Option<Module>> {
+    ) -> Result<Module> {
         let filter = doc! {
             "module_code": module_code,
             "acad_year": acad_year,
         };
-        Ok(self.0.find_one(filter, None).await?)
+        let result = self.0.find_one(filter, None).await?;
+        result.ok_or(Box::new(Error::NotFound))
     }
 }

@@ -18,32 +18,41 @@ async fn init_db() -> Result<Database> {
     Ok(init_client().await?.modtree_db())
 }
 
-async fn mongo() -> Result<()> {
+async fn play() -> Result<()> {
     let db = init_db().await?;
-    let module_coll = db.modules();
+    let mods = db.modules();
     let mut graph = Graph::new();
-    graph.add(module_coll.find_one("CS2040", "2022/2023").await?.unwrap());
-    graph.add(module_coll.find_one("CS2040", "2022/2023").await?.unwrap());
-    graph.add(module_coll.find_one("CS2040", "2021/2022").await?.unwrap());
-    // TODO: need to check if a module is add-able to graph by its prereqTree
-    println!("graph->{}", graph.module_count());
+    graph.add(mods.find_one("CS2040", "2022/2023").await?);
+    graph.add(mods.find_one("CS2040", "2021/2022").await?);
+    graph.add(mods.find_one("CS1010", "2021/2022").await?);
+    graph.add(mods.find_one("CS2040", "2021/2022").await?);
+    // TODO: list the "up next modules"
+    // TODO: get smallest number of modules left to unlock for each module
+    println!("graph->{}", graph.count());
     Ok(())
 }
 
 #[derive(Debug)]
 struct Graph {
-    modules: HashSet<Module>,
+    done: HashSet<Module>,
 }
 
 impl Graph {
     fn new() -> Self {
-        Self { modules: HashSet::new() }
+        Self { done: HashSet::new() }
     }
     fn add(&mut self, module: Module) {
-        self.modules.insert(module);
+        let done = self.done.iter().map(|v| v.code()).collect();
+        match module.satisfied_by(&done) {
+            Ok(()) => {
+                eprintln!("added {code}!", code = module.code());
+                self.done.insert(module);
+            }
+            Err(e) => eprintln!("{}", e),
+        }
     }
-    fn module_count(&self) -> usize {
-        self.modules.len()
+    fn count(&self) -> usize {
+        self.done.len()
     }
 }
 
@@ -66,7 +75,6 @@ async fn check_schema() -> Result<()> {
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    check_schema().await.unwrap();
-    // dump::restore().unwrap();
-    // dump::create().unwrap();
+    // check_schema().await.unwrap();
+    play().await.unwrap();
 }
