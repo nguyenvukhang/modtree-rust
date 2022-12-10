@@ -10,7 +10,7 @@ use types::Result;
 async fn import_modules(db: &Database) -> Result<()> {
     let module_collection = db.modules();
     module_collection.drop().await?;
-    let loader = Loader::new()?;
+    let loader = Loader::new("2022-2023")?;
     println!("Loading modules from JSON...");
     let modules = loader.load_all_modules().await?;
     println!("Done loading all modules from JSON");
@@ -24,6 +24,8 @@ async fn mongo() -> Result<()> {
     let mut client = Client::new("localhost:27017").await?;
     client.assert_running()?;
     let db = client.modtree_db();
+    // let imported = db.import_modules("2022-2023").await?;
+    // println!("imported->{:?}", imported);
     let module_collection = db.modules();
     println!("modules in database->{}", module_collection.count().await?);
     let one = module_collection.find_one_module("CS2040", "2022/2023").await?;

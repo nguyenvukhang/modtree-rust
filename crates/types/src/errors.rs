@@ -15,4 +15,6 @@ pub enum Error {
     InvalidData(String),
     #[error("Mongo DB client is not running")]
     MongoDbClientNotRunning,
+    #[error("Unable to fully load all modules")]
+    UnableToLoadAllModules,
 }

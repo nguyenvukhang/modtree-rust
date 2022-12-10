@@ -1,11 +1,14 @@
+use crate::util;
+use futures::prelude::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use types::{Module, ModuleShort, Result};
+use types::{Error, Module, ModuleShort, Result};
 
 #[derive(Debug)]
 pub struct Loader {
@@ -19,25 +22,33 @@ pub struct Loader {
 ///   1. from local cache
 ///   2. from remote data (only when step 1 fails)
 impl Loader {
-    pub fn new() -> Result<Self> {
+    pub fn new(academic_year: &str) -> Result<Self> {
         dotenv::dotenv().expect(".env file not found");
         let root = env::var("MODTREE_CACHE_DIR").map(PathBuf::from)?;
         if root.is_relative() {
             Err(types::PathError::RequiresAbsolutePath(root.to_owned()))?
         }
-        let base_url = PathBuf::from("https://api.nusmods.com/v2/2022-2023/");
+        let academic_year = util::validate_academic_year(academic_year, '-')?;
+        let base_url = PathBuf::from("https://api.nusmods.com/v2");
         fs::create_dir_all(&root)?;
         Ok(Self {
-            root,
-            base_url,
+            root: root.join(&academic_year),
+            base_url: base_url.join(&academic_year),
             local_count: Arc::new(AtomicUsize::new(0)),
             remote_count: Arc::new(AtomicUsize::new(0)),
         })
     }
 
-    pub fn report(&self) {
-        println!("local: {}", self.local_count.load(Ordering::Relaxed));
-        println!("remote: {}", self.remote_count.load(Ordering::Relaxed));
+    fn source_counts(&self) -> [usize; 2] {
+        [
+            self.local_count.load(Ordering::Relaxed),
+            self.remote_count.load(Ordering::Relaxed),
+        ]
+    }
+
+    fn clear_source_counts(&self) {
+        self.local_count.store(0, Ordering::Relaxed);
+        self.remote_count.store(0, Ordering::Relaxed);
     }
 
     /// Load list of modules from NUSMods. This pulls an extremely minimal list of modules that
@@ -48,16 +59,66 @@ impl Loader {
 
     /// Loads all full-info modules.
     pub async fn load_all_modules(&self) -> Result<Vec<Module>> {
+        eprintln!("Reading list of modules...");
         let shorts: Vec<ModuleShort> = self.load("moduleList.json").await?;
-        let handles = shorts.iter().map(|module| async move {
-            self.load_module(&module.code()).await
-        });
-        let results = futures::future::join_all(handles).await;
-        Ok(results.into_iter().filter_map(|v| v.ok()).collect())
+        let target = shorts.len();
+        eprintln!("Fetch target count: {target}");
+        let mut remaining: HashSet<String> =
+            HashSet::from_iter(shorts.into_iter().map(|m| m.code()));
+        let mut result: Vec<Module> = vec![];
+        let mut attempts = 0;
+        while attempts < 5 && result.len() < target {
+            if attempts > 0 {
+                eprintln!("[fetcher] retry: {attempts}");
+            }
+            let prelim = self._load_all_modules(&remaining).await;
+            for module in &prelim {
+                remaining.remove(&module.code());
+            }
+            result.extend(prelim);
+            eprintln!("[fetcher] fetched: {}/{target}", result.len());
+            attempts += 1;
+        }
+        if result.len() == target {
+            Ok(result)
+        } else {
+            Err(Error::UnableToLoadAllModules)?
+        }
     }
 
-    /// Load list of modules from NUSMods. This pulls an extremely minimal list of modules that
-    /// only contains module code, title, and semesters offered.
+    /// Inner helper function to load all modules.
+    async fn _load_all_modules(&self, list: &HashSet<String>) -> Vec<Module> {
+        self.clear_source_counts();
+        let done = Arc::new(AtomicUsize::new(0));
+        let target = list.len();
+        let interval = 200.max(target / 10);
+        println!("[fetcher]: inner fetching {} modules.", list.len());
+        let handles = list.iter().map(|code| (code, Arc::clone(&done))).map(
+            |(code, done)| async move {
+                let res = self.load_module(code).await;
+                let _ = done.fetch_update(
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                    |x| {
+                        if x % interval == 0 {
+                            println!(
+                                "[fetcher] {x}/{target} {:?}",
+                                self.source_counts()
+                            );
+                        }
+                        Some(x + 1)
+                    },
+                );
+                res
+            },
+        );
+        let stream = futures::stream::iter(handles).buffer_unordered(40);
+        let results = stream.collect::<Vec<_>>().await;
+        println!("[fetcher] attempt done: {:?}", self.source_counts());
+        results.into_iter().filter_map(|v| v.ok()).collect()
+    }
+
+    /// Loads one module and all of its information.
     pub async fn load_module(&self, code: &str) -> Result<Module> {
         Ok(self.load(&format!("modules/{code}.json")).await?)
     }
