@@ -20,15 +20,12 @@ impl ModuleCollection {
         let modules = loader.load_all_modules().await?;
         println!("Done loading all modules from JSON");
         println!("Inserting modules to mongo-db...");
-        self.insert_many_modules(&modules).await;
+        self.insert_many(&modules).await;
         println!("Done.");
         Ok(())
     }
 
-    pub async fn insert_one_module(
-        &self,
-        module: &Module,
-    ) -> Result<UpdateResult> {
+    pub async fn insert_one(&self, module: &Module) -> Result<UpdateResult> {
         let mut doc = to_document(module)?;
         // let mongo-db automatically generate an id
         doc.remove("_id");
@@ -42,13 +39,13 @@ impl ModuleCollection {
         Ok(result)
     }
 
-    pub async fn insert_many_modules(
+    pub async fn insert_many(
         &self,
         modules: &Vec<Module>,
     ) -> Vec<Result<UpdateResult>> {
         let handles = modules
             .iter()
-            .map(|module| async move { self.insert_one_module(module).await });
+            .map(|module| async move { self.insert_one(module).await });
         futures::future::join_all(handles).await
     }
 
@@ -56,11 +53,20 @@ impl ModuleCollection {
         Ok(self.0.drop(None).await?)
     }
 
+    /// Lists all modules in database. Can get heavy.
+    pub async fn list_all(&self) -> Result<Vec<Module>> {
+        use futures::stream::StreamExt;
+
+        let cursor = self.0.find(None, None).await?;
+        let v: Vec<_> = cursor.collect().await;
+        Ok(v.into_iter().filter_map(|v| v.ok()).collect())
+    }
+
     pub async fn count(&self) -> Result<u64> {
         Ok(self.0.count_documents(None, None).await?)
     }
 
-    pub async fn find_one_module(
+    pub async fn find_one(
         &self,
         module_code: &str,
         acad_year: &str,

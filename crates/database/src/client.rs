@@ -42,6 +42,11 @@ impl Client {
         Database::new(self.c.database("modtree"))
     }
 
+    /// The database of modtree.
+    pub fn test_db(&mut self, name: &str) -> Database {
+        Database::new(self.c.database(name))
+    }
+
     pub async fn database(&mut self, name: &str) -> Result<mongodb::Database> {
         Ok(self.c.database(name))
     }

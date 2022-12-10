@@ -1,27 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 mod errors;
+mod prereqtree;
 pub use errors::*;
+use prereqtree::PrereqTree;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PrereqTree {
-    String(String),
-    Node {
-        #[serde(default)]
-        and: Vec<PrereqTree>,
-        #[serde(default)]
-        or: Vec<PrereqTree>,
-    },
-}
-
-impl Default for PrereqTree {
-    fn default() -> Self {
-        Self::String("".to_string())
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -89,5 +73,22 @@ impl Module {
     }
     pub fn academic_year(&self) -> String {
         self.acad_year.to_string()
+    }
+}
+
+impl PartialEq for Module {
+    fn eq(&self, other: &Self) -> bool {
+        self._id == other._id
+    }
+    fn ne(&self, other: &Self) -> bool {
+        self._id != other._id
+    }
+}
+impl Eq for Module {}
+
+use std::hash::{Hash, Hasher};
+impl Hash for Module {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self._id.hash(state);
     }
 }
