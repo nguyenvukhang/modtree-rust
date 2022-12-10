@@ -6,38 +6,38 @@ use database::Database;
 use fetcher::Loader;
 use types::{Module, Result};
 
-// async fn insert_data(db: &mut Database) -> Result<(), BoxErr> {
-//     let collection = db.collection::<Document>("books");
-//     let docs = vec![
-//         doc! { "title": "1984", "author": "George Orwell" },
-//         doc! { "title": "Animal Farm", "author": "George Orwell" },
-//         doc! { "title": "The Great Gatsby", "author": "F. Scott Fitzgerald" },
-//     ];
-//     collection.insert_many(docs, None).await?;
-//     Ok(())
-// }
-//
-// async fn list_collections(db: &Database) -> Result<(), BoxErr> {
-//     println!("Listing collections...");
-//     for collection_name in db.list_collection_names(None).await? {
-//         println!("{}", collection_name);
-//     }
-//     Ok(())
-// }
-
 /// Loads all modules into the modules collection
 async fn load_all_modules(db: &Database) -> Result<()> {
+    use mongodb::bson::{doc, to_document};
+    use mongodb::options::UpdateOptions;
     let loader = Loader::new()?;
     let module_list = loader.load_module_list().await?;
     let code_list: Vec<String> = module_list.iter().map(|v| v.code()).collect();
-    let mut to_insert: Vec<Module> = vec![];
+    let mut loaded_modules = vec![];
+    // load all details
     for code in code_list {
-        println!("code->{code}");
-        let details = loader.load_module(&code).await?;
-        to_insert.push(Module::from(details));
+        let val = loader.load_module(&code).await?;
+        loaded_modules.push(Module::from(val));
     }
-    let modules = db.modules();
-    modules.insert_many(to_insert, None).await?;
+    let handles = loaded_modules.iter().map(|module| async move {
+        let mut doc = to_document(&module).unwrap();
+        doc.remove("_id");
+        let res = db
+            .modules()
+            .update_one(
+                doc! {
+                    "module_code": module.code(),
+                    "acad_year": module.academic_year()
+                },
+                // TODO: uniquely identify a module by semester too.
+                doc! { "$set": doc },
+                UpdateOptions::builder().upsert(true).build(),
+            )
+            .await;
+        println!("code->{}", module.code());
+        res
+    });
+    futures::future::join_all(handles).await;
     Ok(())
 }
 
@@ -73,8 +73,8 @@ async fn mongo() -> Result<()> {
     // let databases = client.list_all_database_names().await.unwrap();
     // println!("databases -> {:?}", databases);
     let db = client.modtree_db().await;
-    remove_all_modules(&db).await?;
-    // load_all_modules(&db).await?;
+    // remove_all_modules(&db).await?;
+    load_all_modules(&db).await?;
     count_all_modules(&db).await?;
     Ok(())
 }

@@ -81,6 +81,8 @@ pub struct ModuleDetails {
 /// Condensed version of a module, enough to execute business logic.
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Module {
+    #[serde(default)]
+    _id: Option<String>,
     #[serde(default, alias = "acadYear")]
     acad_year: String,
     #[serde(default)]
@@ -100,6 +102,7 @@ pub struct Module {
 impl From<ModuleDetails> for Module {
     fn from(m: ModuleDetails) -> Self {
         Self {
+            _id: None,
             acad_year: m.acad_year,
             preclusion: m.preclusion,
             title: m.title,
@@ -115,10 +118,22 @@ impl Module {
     pub fn code(&self) -> String {
         self.module_code.to_string()
     }
+    pub fn academic_year(&self) -> String {
+        self.acad_year.to_string()
+    }
 }
 
 impl ModuleSummary {
     pub fn code(&self) -> String {
         self.module_code.to_string()
+    }
+}
+
+impl ModuleDetails {
+    pub fn code(&self) -> String {
+        self.module_code.to_string()
+    }
+    pub fn academic_year(&self) -> String {
+        self.acad_year.to_string()
     }
 }

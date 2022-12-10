@@ -15,6 +15,9 @@ pub struct Loader {
     remote_count: Arc<AtomicUsize>,
 }
 
+/// The spirit of this loader is to always do a two-step fetch:
+///   1. from local cache
+///   2. from remote data (only when step 1 fails)
 impl Loader {
     pub fn new() -> Result<Self> {
         dotenv::dotenv().expect(".env file not found");
