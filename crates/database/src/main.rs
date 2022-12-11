@@ -23,9 +23,11 @@ async fn play() -> Result<()> {
     let mods = db.modules();
     let mut graph = Graph::new();
     graph.add(mods.find_one("CS2040", "2022/2023").await?);
-    graph.add(mods.find_one("CS2040", "2021/2022").await?);
     graph.add(mods.find_one("CS1010", "2021/2022").await?);
     graph.add(mods.find_one("CS2040", "2021/2022").await?);
+    graph.add(mods.find_one("MA2101", "2021/2022").await?);
+    println!("{:?}", mods.find_one("MA2101", "2021/2022").await?);
+    graph.add(mods.find_one("MA2001", "2021/2022").await?);
     // TODO: list the "up next modules"
     // TODO: get smallest number of modules left to unlock for each module
     println!("#graph->{}", graph.count());
@@ -65,16 +67,17 @@ async fn check_schema() -> Result<()> {
     println!("Successful JSON import");
     let modules = mod_coll.list_all().await?;
     println!("Successful struct collect");
-    let count = mod_coll.count().await?;
-    println!("[check schema] #module.collection->{count}");
-    let count = modules.len();
-    println!("[check schema] #vec<module>->{count}");
+    let total = mod_coll.count().await?;
+    println!("[check schema] #module.collection->{total}");
+    let valids = modules.len() as u64;
+    println!("[check schema] #vec<module>->{valids}");
+    println!("[check schema] match ? {}", valids == total);
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    // check_schema().await.unwrap();
-    play().await.unwrap();
+    check_schema().await.unwrap();
+    // play().await.unwrap();
 }

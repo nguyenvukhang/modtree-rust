@@ -78,6 +78,9 @@ impl Module {
     pub fn satisfied_by(&self, done: &HashSet<String>) -> Result<()> {
         self.prereq_tree.satisfied_by(self.code(), done)
     }
+    pub fn prereqtree_valid(&self) -> bool {
+        self.prereq_tree.is_valid()
+    }
 }
 
 impl PartialEq for Module {

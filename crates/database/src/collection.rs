@@ -56,10 +56,13 @@ impl ModuleCollection {
     /// Lists all modules in database. Can get heavy.
     pub async fn list_all(&self) -> Result<Vec<Module>> {
         use futures::stream::StreamExt;
-
         let cursor = self.0.find(None, None).await?;
         let v: Vec<_> = cursor.collect().await;
-        Ok(v.into_iter().filter_map(|v| v.ok()).collect())
+        let valids = v.into_iter().filter_map(|v| v.ok()).map(|module| {
+            assert!(module.prereqtree_valid());
+            module
+        });
+        Ok(valids.collect())
     }
 
     pub async fn count(&self) -> Result<u64> {

@@ -6,8 +6,7 @@ use std::collections::HashSet;
 #[serde(untagged)]
 pub enum PrereqTree {
     Only(String),
-    And { and: Vec<PrereqTree> },
-    Or { or: Vec<PrereqTree> },
+    Node { and: Vec<PrereqTree>, or: Vec<PrereqTree> },
 }
 
 impl Default for PrereqTree {
@@ -17,6 +16,12 @@ impl Default for PrereqTree {
 }
 
 impl PrereqTree {
+    pub(crate) fn is_valid(&self) -> bool {
+        match self {
+            Self::Only(_) => true,
+            Self::Node { and, or } => and.is_empty() ^ or.is_empty(),
+        }
+    }
     pub(crate) fn satisfied_by(
         &self,
         code: String,
@@ -30,11 +35,16 @@ impl PrereqTree {
     fn _satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
             PrereqTree::Only(only) => only.is_empty() || done.contains(only),
-            PrereqTree::And { and } => {
-                and.iter().fold(true, |a, p| a && p._satisfied_by(done))
-            }
-            PrereqTree::Or { or } => {
-                or.iter().fold(or.is_empty(), |a, p| a || p._satisfied_by(done))
+            PrereqTree::Node { and, or } => {
+                match (and.is_empty(), or.is_empty()) {
+                    (true, true) => true,
+                    (false, _) => or
+                        .iter()
+                        .fold(or.is_empty(), |a, p| a || p._satisfied_by(done)),
+                    (_, false) => {
+                        and.iter().fold(true, |a, p| a && p._satisfied_by(done))
+                    }
+                }
             }
         }
     }
@@ -58,21 +68,27 @@ fn prereqtree_satisfies_test() {
     test!(t("CS2040"), ["CS1231", "CS1010"], false);
     test!(t("CS2030"), ["CS2030"], true);
     // tests for "and"
-    let tree = And { and: vec![t("A"), t("B")] };
+    let tree = Node { and: vec![t("A"), t("B")], or: vec![] };
     test!(tree, ["A", "B"], true);
     test!(tree, ["A", "C"], false);
     // tests for "or"
-    let tree = Or { or: vec![t("A"), t("B")] };
+    let tree = Node { and: vec![], or: vec![t("A"), t("B")] };
     test!(tree, ["A"], true);
     test!(tree, ["C"], false);
     // tests for nested structures
-    let tree = And { and: vec![Or { or: vec![t("A"), t("B")] }, t("C")] };
+    let tree = Node {
+        and: vec![Node { and: vec![], or: vec![t("A"), t("B")] }, t("C")],
+        or: vec![],
+    };
     test!(tree, ["A", "C"], true);
     test!(tree, ["B", "C"], true);
     test!(tree, ["A", "B"], false);
     test!(tree, ["C"], false);
     // tests for nested structures
-    let tree = Or { or: vec![And { and: vec![t("A"), t("B")] }, t("C")] };
+    let tree = Node {
+        and: vec![],
+        or: vec![Node { and: vec![t("A"), t("B")], or: vec![] }, t("C")],
+    };
     test!(tree, ["A", "C"], true);
     test!(tree, ["B", "C"], true);
     test!(tree, ["A", "B"], true);
