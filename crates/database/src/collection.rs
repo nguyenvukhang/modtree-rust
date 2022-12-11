@@ -3,6 +3,7 @@ use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
 use types::{error, Error, Module, Result};
 
+#[derive(Debug)]
 pub struct ModuleCollection(mongodb::Collection<Module>);
 
 impl ModuleCollection {
