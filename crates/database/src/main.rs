@@ -89,9 +89,13 @@ impl Graph {
         self.done.len()
     }
 
-    async fn radar(&self) -> Result<Vec<Module>> {
+    async fn radar(&self, max_distance: u8) -> Result<Vec<Module>> {
         self.collection
-            .radar(&self.current_acad_year, self.done_codes::<Vec<_>>())
+            .radar(
+                &self.current_acad_year,
+                self.done_codes::<HashSet<_>>(),
+                max_distance,
+            )
             .await
     }
 }
@@ -122,12 +126,13 @@ async fn create_radar() -> Result<()> {
     let db = init_db().await?;
     let mods = db.modules();
     let mut graph = Graph::new("2022/2023", mods);
-    // graph.add("MA1301X").await;
+    graph.add("MA1301X").await;
     graph.add("CS1010").await;
     graph.add("CS1231").await;
-    let radar = graph.radar().await?;
+    let radar = graph.radar(5).await?;
     let radar = radar.iter().map(|v| v.code()).collect::<Vec<String>>();
     println!("radar->{:?}", radar);
+    println!("#radar->{:?}", radar.len());
     Ok(())
 }
 
@@ -143,5 +148,5 @@ async fn main() {
     println!("crates::database!");
     // check_schema().await.unwrap();
     // play().await.unwrap();
-    short().await.unwrap();
+    create_radar().await.unwrap();
 }

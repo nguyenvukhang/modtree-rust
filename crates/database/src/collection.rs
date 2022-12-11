@@ -2,6 +2,7 @@ use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
+use std::collections::HashSet;
 use types::{error, Error, Module, Result};
 
 #[derive(Debug)]
@@ -95,17 +96,24 @@ impl ModuleCollection {
         Ok(valids.collect())
     }
 
-    /// Gets all modules whose prereqtrees contain a module which is in the list supplied.
+    /// Finds modules which satisfy the following:
+    /// 1. is in the specified academic year
+    /// 2. has a pre-requisite module that is in the `done` set
+    /// 3. only needs at most `max_distance` more modules to unlock
     pub async fn radar(
         &self,
         acad_year: &str,
-        done: Vec<String>,
+        done: HashSet<String>,
+        max_distance: u8,
     ) -> Result<Vec<Module>> {
-        let mut cursor = self.0.find(doc! { "acad_year": acad_year }, None).await?;
+        let mut cursor =
+            self.0.find(doc! { "acad_year": acad_year }, None).await?;
         let mut result = vec![];
         while let Some(module) = cursor.next().await {
             if let Ok(module) = module {
-                if module.prereqtree_has_one_of(&done) {
+                if module.prereqtree_has_one_of(&done)
+                    && module.prereqtree_min_to_unlock(&done) <= max_distance
+                {
                     result.push(module)
                 }
             }

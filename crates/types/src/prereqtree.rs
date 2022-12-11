@@ -21,7 +21,7 @@ impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
     pub(crate) fn contains_code(&self, module_code: &str) -> bool {
         match self {
-            Only(only) => only.is_empty() || only.eq(module_code),
+            Only(only) => !only.is_empty() && only.eq(module_code),
             And { and } => and.iter().any(|v| v.contains_code(module_code)),
             Or { or } => or.iter().any(|v| v.contains_code(module_code)),
         }

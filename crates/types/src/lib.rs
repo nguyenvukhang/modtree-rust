@@ -85,8 +85,11 @@ impl Module {
     pub fn prereqtree_contains(&self, module_code: &str) -> bool {
         self.prereqtree.contains_code(module_code)
     }
-    pub fn prereqtree_has_one_of(&self, module_code: &Vec<String>) -> bool {
+    pub fn prereqtree_has_one_of(&self, module_code: &HashSet<String>) -> bool {
         module_code.iter().any(|code| self.prereqtree.contains_code(code))
+    }
+    pub fn prereqtree_min_to_unlock(&self, done: &HashSet<String>) -> u8 {
+        self.prereqtree.min_to_unlock(done)
     }
 }
 
