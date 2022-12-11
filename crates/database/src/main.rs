@@ -131,10 +131,17 @@ async fn create_radar() -> Result<()> {
     Ok(())
 }
 
+async fn short() -> Result<()> {
+    let db = init_db().await?;
+    let mods = db.modules();
+    let all_mods = mods.list_all().await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
     // check_schema().await.unwrap();
     // play().await.unwrap();
-    create_radar().await.unwrap();
+    short().await.unwrap();
 }

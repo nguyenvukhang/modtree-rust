@@ -20,7 +20,7 @@ macro_rules! docker {
     ("sh", $($arg:tt)*) => {{
         report(Command::new("docker").args(SH).arg(format!($($arg)*)));
     }};
-    ("cp", $src:expr,$dst:expr) => {{
+    ("cp", $src:expr, $dst:expr) => {{
         report(Command::new("docker").arg("cp").arg($src).arg($dst));
     }};
 }
