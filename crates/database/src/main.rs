@@ -23,11 +23,12 @@ async fn play() -> Result<()> {
     let mods = db.modules();
     let mut graph = Graph::new();
     graph.add(mods.find_one("CS2040", "2022/2023").await?);
-    graph.add(mods.find_one("CS1010", "2021/2022").await?);
-    graph.add(mods.find_one("CS2040", "2021/2022").await?);
-    graph.add(mods.find_one("MA2101", "2021/2022").await?);
-    println!("{:?}", mods.find_one("MA2101", "2021/2022").await?);
-    graph.add(mods.find_one("MA2001", "2021/2022").await?);
+    graph.add(mods.find_one("CS1010", "2022/2023").await?);
+    graph.add(mods.find_one("CS2040", "2022/2023").await?);
+    let la = mods.find_one("MA2101", "2022/2023").await?;
+    // println!("{:?}", la);
+    graph.add(la);
+    graph.add(mods.find_one("MA2001", "2022/2023").await?);
     // TODO: list the "up next modules"
     // TODO: get smallest number of modules left to unlock for each module
     println!("#graph->{}", graph.count());
@@ -75,9 +76,25 @@ async fn check_schema() -> Result<()> {
     Ok(())
 }
 
+async fn short_test() -> Result<()> {
+    let module_code = "MA2101";
+    let db = init_db().await?;
+    let mods = db.modules();
+    // mods.drop().await?;
+    // mods.import_one("2022-2023", module_code).await?;
+    mods.import_academic_year("2022-2023").await?;
+    let all = mods.list_all().await?;
+    let codes: Vec<_> = all.iter().map(|v| v.code()).collect();
+    println!("all->{codes:?}");
+    let la = mods.find_one(module_code, "2022/2023").await?;
+    println!("{module_code}.prereqtree->{:?}", la.prereqtree());
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    check_schema().await.unwrap();
-    // play().await.unwrap();
+    // check_schema().await.unwrap();
+    play().await.unwrap();
+    // short_test().await.unwrap();
 }

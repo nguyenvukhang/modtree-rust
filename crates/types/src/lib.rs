@@ -55,7 +55,7 @@ pub struct Module {
     #[serde(default, alias = "moduleCode")]
     module_code: String,
     #[serde(default, alias = "prereqTree")]
-    prereq_tree: PrereqTree,
+    prereqtree: PrereqTree,
     #[serde(default, alias = "fulfillRequirements")]
     fulfill_requirements: Vec<String>,
     #[serde(default)]
@@ -76,10 +76,13 @@ impl Module {
         self.acad_year.to_string()
     }
     pub fn satisfied_by(&self, done: &HashSet<String>) -> Result<()> {
-        self.prereq_tree.satisfied_by(self.code(), done)
+        self.prereqtree.satisfied_by(self.code(), done)
     }
     pub fn prereqtree_valid(&self) -> bool {
-        self.prereq_tree.is_valid()
+        self.prereqtree.is_valid()
+    }
+    pub fn prereqtree(&self) -> &PrereqTree {
+        &self.prereqtree
     }
 }
 

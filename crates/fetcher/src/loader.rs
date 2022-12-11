@@ -58,9 +58,15 @@ impl Loader {
     }
 
     /// Loads all full-info modules.
-    pub async fn load_all_modules(&self) -> Result<Vec<Module>> {
+    pub async fn load_all_modules(
+        &self,
+        limit: Option<usize>,
+    ) -> Result<Vec<Module>> {
         eprintln!("Reading list of modules...");
-        let shorts: Vec<ModuleShort> = self.load("moduleList.json").await?;
+        let mut shorts: Vec<ModuleShort> = self.load("moduleList.json").await?;
+        if let Some(limit) = limit {
+            shorts = shorts.into_iter().take(limit).collect();
+        }
         let target = shorts.len();
         eprintln!("Fetch target count: {target}");
         let mut remaining: HashSet<String> =
@@ -157,13 +163,13 @@ impl Loader {
     where
         T: DeserializeOwned + Serialize,
     {
-        let response = reqwest::get(url).await?;
-        let parsed = response.json::<T>().await?;
+        let response2 = reqwest::get(url).await?;
+        let text = response2.text().await?;
         fs::create_dir_all(&path.parent().unwrap()).unwrap();
-        let file = fs::File::create(path).ok();
-        file.and_then(|file| serde_json::to_writer(file, &parsed).ok())
-            .expect("Unable to locally cache result");
+        let mut file = fs::File::create(path)?;
+        use std::io::Write;
+        file.write_fmt(format_args!("{text}"))?;
         let _ = &self.remote_count.fetch_add(1, Ordering::SeqCst);
-        Ok(parsed)
+        self.local::<T>(&path)
     }
 }

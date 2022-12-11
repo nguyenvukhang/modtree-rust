@@ -17,10 +17,42 @@ impl ModuleCollection {
         use fetcher::Loader;
         let loader = Loader::new(academic_year)?;
         println!("Loading modules from JSON...");
-        let modules = loader.load_all_modules().await?;
+        let modules = loader.load_all_modules(None).await?;
         println!("Done loading all modules from JSON");
         println!("Inserting modules to mongo-db...");
         self.insert_many(&modules).await;
+        println!("Done.");
+        Ok(())
+    }
+
+    pub async fn import_partial(
+        &self,
+        academic_year: &str,
+        count: usize
+    ) -> Result<()> {
+        use fetcher::Loader;
+        let loader = Loader::new(academic_year)?;
+        println!("Loading modules from JSON...");
+        let modules = loader.load_all_modules(Some(count)).await?;
+        println!("Done loading all modules from JSON");
+        println!("Inserting modules to mongo-db...");
+        self.insert_many(&modules).await;
+        println!("Done.");
+        Ok(())
+    }
+
+    pub async fn import_one(
+        &self,
+        academic_year: &str,
+        module_code: &str
+    ) -> Result<()> {
+        use fetcher::Loader;
+        let loader = Loader::new(academic_year)?;
+        println!("Loading {module_code} from JSON...");
+        let module = loader.load_module(module_code).await?;
+        println!("Done loading {module_code} from JSON");
+        println!("Inserting modules to mongo-db...");
+        self.insert_one(&module).await?;
         println!("Done.");
         Ok(())
     }
