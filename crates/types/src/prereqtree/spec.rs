@@ -9,7 +9,7 @@ fn prereqtree_macro_test() {
 #[test]
 fn satisfies_test() {
     fn test(tree: &PrereqTree, done: HashSet<String>, expect: bool) {
-        assert!(!expect ^ tree._satisfied_by(&done));
+        assert!(!expect ^ tree.satisfied_by(&done));
     }
     // empty tree
     test(&t!(), t!(none), true);

@@ -77,11 +77,15 @@ impl Graph {
         };
         let done = self.done.iter().map(|v| v.code()).collect();
         match m.satisfied_by(&done) {
-            Ok(()) => {
+            true => {
                 eprintln!("added {code}!", code = m.code());
                 self.done.insert(m);
             }
-            Err(e) => eprintln!("{}", e),
+            false => eprintln!(
+                "{} pre-requisites not satisfied -> {:?}",
+                m.code(),
+                m.prereqtree()
+            ),
         }
     }
 

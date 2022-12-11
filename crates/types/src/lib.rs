@@ -76,8 +76,8 @@ impl Module {
     pub fn academic_year(&self) -> String {
         self.acad_year.to_string()
     }
-    pub fn satisfied_by(&self, done: &HashSet<String>) -> Result<()> {
-        self.prereqtree.satisfied_by(self.code(), done)
+    pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
+        self.prereqtree.satisfied_by(done)
     }
     pub fn prereqtree(&self) -> &PrereqTree {
         &self.prereqtree

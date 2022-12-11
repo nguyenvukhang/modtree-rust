@@ -4,7 +4,6 @@ mod experimental;
 mod std_impl;
 mod util;
 
-use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -17,6 +16,7 @@ pub enum PrereqTree {
 }
 use PrereqTree::*;
 
+/// Public-facing API
 impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
     pub(crate) fn contains_code(&self, module_code: &str) -> bool {
@@ -42,32 +42,26 @@ impl PrereqTree {
     }
 
     /// Checks if a set of modules done satisfies the prereqtree.
-    pub(crate) fn satisfied_by(
-        &self,
-        code: String,
-        done: &HashSet<String>,
-    ) -> Result<()> {
-        let ok = self._satisfied_by(done);
-        let tree = format!("{:?}", self);
-        let err = Error::PrerequisitesNotSatisfied(code, tree);
-        ok.then_some(()).ok_or(err)
-    }
-    fn _satisfied_by(&self, done: &HashSet<String>) -> bool {
+    pub(crate) fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
             PrereqTree::Only(only) => only.is_empty() || done.contains(only),
             PrereqTree::And { and } => {
-                and.iter().fold(true, |a, p| a && p._satisfied_by(done))
+                and.iter().fold(true, |a, p| a && p.satisfied_by(done))
             }
             PrereqTree::Or { or } => {
-                or.iter().fold(or.is_empty(), |a, p| a || p._satisfied_by(done))
+                or.iter().fold(or.is_empty(), |a, p| a || p.satisfied_by(done))
             }
         }
     }
 
     /// Returns one possible path that is shortest
-    fn min_path(&self) -> Vec<String> {
+    pub(crate) fn min_path(&self) -> Vec<String> {
         self._min_path(vec![])
     }
+}
+
+/// Private (usually recursive) functions.
+impl PrereqTree {
     fn _min_path(&self, mut path: Vec<String>) -> Vec<String> {
         match self {
             Only(v) if v.is_empty() => path,
