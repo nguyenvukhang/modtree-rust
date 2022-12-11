@@ -2,12 +2,7 @@ use crate::prereqtree::PrereqTree;
 use std::collections::HashSet;
 
 #[test]
-fn prereqtree_macro_test() {
-    // TODO: complete the PartialEq first
-}
-
-#[test]
-fn satisfies_test() {
+fn satisfied_by_test() {
     fn test(tree: &PrereqTree, done: HashSet<String>, expect: bool) {
         assert!(!expect ^ tree.satisfied_by(&done));
     }
@@ -36,7 +31,7 @@ fn satisfies_test() {
 }
 
 #[test]
-fn min_unlock_test() {
+fn min_to_unlock_test() {
     fn test(tree: &PrereqTree, done: HashSet<String>, expect: u8) {
         assert_eq!(tree.min_to_unlock(&done), expect);
     }
@@ -96,3 +91,39 @@ fn min_path_test() {
     test!(tree, vec!["A", "C"], true);
 }
 
+#[test]
+fn flatten_test() {
+    use crate::prereqtree::util::vec_eq;
+    macro_rules! flat {
+        ($tree:expr, $expected:expr) => {
+            let expected: Vec<String> =
+                $expected.iter().map(|v| v.to_string()).collect();
+            let received = &$tree.flatten();
+            let ok = vec_eq(&received, &expected, |a, b| a.eq(b));
+            if !ok {
+                println!("received->{:?}", received);
+                println!("expected->{:?}", expected);
+            }
+            assert!(ok);
+        };
+    }
+    // tests for "and"
+    let tree = &t!(and, t!(A), t!(B));
+    flat!(tree, vec!["A", "B"]);
+    // tests for "or"
+    let tree = &t!(or, t!(A), t!(B));
+    flat!(tree, vec!["A", "B"]);
+    // tests for nested structures "and(or())"
+    let tree = &t!(and, t!(or, t!(A), t!(B)), t!(C));
+    flat!(tree, vec!["A", "B", "C"]);
+    // tests for nested structures "or(and())"
+    let tree = &t!(or, t!(and, t!(A), t!(B)), t!(C));
+    flat!(tree, vec!["A", "B", "C"]);
+    // other trees
+    let tree = t!(or, t!(and, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    flat!(tree, vec!["A", "B", "C", "D", "E"]);
+    let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    flat!(tree, vec!["A", "B", "C", "D", "E"]);
+    let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
+    flat!(tree, vec!["A", "B", "C"]);
+}

@@ -1,6 +1,5 @@
 #[macro_use]
 mod macros;
-mod experimental;
 mod std_impl;
 mod util;
 
@@ -44,43 +43,43 @@ impl PrereqTree {
     /// Checks if a set of modules done satisfies the prereqtree.
     pub(crate) fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
-            PrereqTree::Only(only) => only.is_empty() || done.contains(only),
-            PrereqTree::And { and } => {
+            Only(only) => only.is_empty() || done.contains(only),
+            And { and } => {
                 and.iter().fold(true, |a, p| a && p.satisfied_by(done))
             }
-            PrereqTree::Or { or } => {
+            Or { or } => {
                 or.iter().fold(or.is_empty(), |a, p| a || p.satisfied_by(done))
             }
         }
     }
 
-    /// Returns one possible path that is shortest
+    /// Returns one possible path that is shortest.
     pub(crate) fn min_path(&self) -> Vec<String> {
-        self._min_path(vec![])
-    }
-}
-
-/// Private (usually recursive) functions.
-impl PrereqTree {
-    fn _min_path(&self, mut path: Vec<String>) -> Vec<String> {
         match self {
-            Only(v) if v.is_empty() => path,
-            Only(only) => {
-                path.push(only.to_string());
-                path
-            }
+            Only(v) if v.is_empty() => vec![],
+            Only(only) => vec![only.to_string()],
             And { and } => {
                 let mut set = HashSet::new();
-                and.iter().for_each(|v| set.extend(v._min_path(vec![])));
-                path.extend(set);
-                path
+                and.iter().for_each(|v| set.extend(v.min_path()));
+                Vec::from_iter(set)
             }
-            Or { or } => {
-                let paths = or.iter().map(|v| v._min_path(vec![]));
-                if let Some(min) = paths.min_by(|a, b| a.len().cmp(&b.len())) {
-                    path.extend(min)
-                }
-                path
+            Or { or } => or
+                .iter()
+                .map(|v| v.min_path())
+                .min_by(|a, b| a.len().cmp(&b.len()))
+                .unwrap_or(vec![]),
+        }
+    }
+
+    /// Returns every module found in the PrereqTree in a list.
+    pub(crate) fn flatten(&self) -> Vec<String> {
+        match self {
+            Only(only) if only.is_empty() => vec![],
+            Only(only) => vec![only.to_string()],
+            Or { or: t } | And { and: t } => {
+                let mut set = HashSet::new();
+                t.iter().for_each(|v| set.extend(v.flatten()));
+                Vec::from_iter(set)
             }
         }
     }
