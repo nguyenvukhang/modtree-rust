@@ -28,7 +28,7 @@ async fn play() -> Result<()> {
     graph.add(mods.find_one("CS2040", "2021/2022").await?);
     // TODO: list the "up next modules"
     // TODO: get smallest number of modules left to unlock for each module
-    println!("graph->{}", graph.count());
+    println!("#graph->{}", graph.count());
     Ok(())
 }
 

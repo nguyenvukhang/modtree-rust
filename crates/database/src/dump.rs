@@ -93,6 +93,6 @@ fn abs_dir(env_var: &str) -> Result<PathBuf> {
     match env::var(env_var).map(PathBuf::from) {
         Ok(dir) if dir.is_absolute() => Ok(dir),
         Ok(dir) => Err(Error::RequiresAbsolutePath(dir))?,
-        Err(err) => Err(Box::new(err)),
+        Err(err) => Err(err)?,
     }
 }

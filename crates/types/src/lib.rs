@@ -6,7 +6,7 @@ mod prereqtree;
 pub use errors::*;
 use prereqtree::PrereqTree;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, errors::Error>;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]

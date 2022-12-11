@@ -25,7 +25,7 @@ impl PrereqTree {
         let ok = self._satisfied_by(done);
         let tree = format!("{:?}", self);
         let err = Error::PrerequisitesNotSatisfied(code, tree);
-        ok.then_some(()).ok_or(Box::new(err))
+        ok.then_some(()).ok_or(err)
     }
     fn _satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
@@ -54,7 +54,7 @@ fn prereqtree_satisfies_test() {
     fn t(s: &str) -> PrereqTree {
         PrereqTree::Only(s.to_string())
     }
-    assert!(PrereqTree::Empty._satisfied_by(&HashSet::new()));
+    assert!(t("")._satisfied_by(&HashSet::new()));
     test!(t("CS2040"), ["CS1231", "CS1010"], false);
     test!(t("CS2030"), ["CS2030"], true);
     // tests for "and"

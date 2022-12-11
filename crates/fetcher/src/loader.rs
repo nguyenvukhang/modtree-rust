@@ -8,7 +8,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use types::{Error, Module, ModuleShort, Result};
+use types::{error, Error, Module, ModuleShort, Result};
 
 #[derive(Debug)]
 pub struct Loader {
@@ -82,7 +82,7 @@ impl Loader {
         if result.len() == target {
             Ok(result)
         } else {
-            Err(Error::UnableToLoadAllModules)?
+            Err(error!(UnableToLoadAllModules))?
         }
     }
 
