@@ -1,6 +1,11 @@
 use crate::prereqtree::PrereqTree;
 use std::collections::HashSet;
 
+#[cfg(test)]
+fn s_vec(s: Vec<&str>) -> Vec<String> {
+    s.iter().map(|v| v.to_string()).collect()
+}
+
 #[test]
 fn satisfied_by_test() {
     fn test(tree: &PrereqTree, done: HashSet<String>, expect: bool) {
@@ -68,8 +73,7 @@ fn min_path_test() {
     use crate::prereqtree::util::vec_eq;
     macro_rules! test {
         ($tree:expr, $expected:expr, $equal:expr) => {
-            let expected: Vec<String> =
-                $expected.iter().map(|v| v.to_string()).collect();
+            let expected = s_vec($expected);
             let received = &$tree.min_path();
             let ok = !$equal ^ vec_eq(&received, &expected, |a, b| a.eq(b));
             if !ok {
@@ -96,8 +100,7 @@ fn flatten_test() {
     use crate::prereqtree::util::vec_eq;
     macro_rules! flat {
         ($tree:expr, $expected:expr) => {
-            let expected: Vec<String> =
-                $expected.iter().map(|v| v.to_string()).collect();
+            let expected = s_vec($expected);
             let received = &$tree.flatten();
             let ok = vec_eq(&received, &expected, |a, b| a.eq(b));
             if !ok {
@@ -126,4 +129,40 @@ fn flatten_test() {
     flat!(tree, vec!["A", "B", "C", "D", "E"]);
     let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
     flat!(tree, vec!["A", "B", "C"]);
+}
+
+#[test]
+fn min_path_filtered_test() {
+    use crate::prereqtree::util::vec_eq;
+    macro_rules! mpf {
+        ($tree:expr, $filter:expr, $expected:expr) => {
+            let expected = s_vec($expected);
+            let filter = s_vec($filter);
+            let received = &$tree.min_path_filtered(&filter).unwrap();
+            let ok = vec_eq(&received, &expected, |a, b| a.eq(b));
+            if !ok {
+                println!("received->{:?}", received);
+                println!("expected->{:?}", expected);
+            }
+            assert!(ok);
+        };
+        ($tree:expr, $filter:expr) => {
+            assert_eq!($tree.min_path_filtered(&s_vec($filter)), None);
+        };
+    }
+    let tree = &t!(and, t!(A), t!(B));
+    mpf!(tree, vec![], vec!["A", "B"]);
+    mpf!(tree, vec!["A"], vec!["A", "B"]);
+    mpf!(tree, vec!["C"]);
+    // complex trees
+    let tree = t!(or, t!(and, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    mpf!(tree, vec![], vec!["A", "B"]);
+    mpf!(tree, vec!["C"], vec!["C", "D", "E"]);
+    let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    mpf!(tree, vec!["A"], vec!["A", "C", "D", "E"]);
+    mpf!(tree, vec!["B"], vec!["B", "C", "D", "E"]);
+    mpf!(tree, vec!["C"], vec!["C", "D", "E"]);
+    let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
+    mpf!(tree, vec!["A"], vec!["A", "C"]);
+    mpf!(tree, vec!["B"], vec!["A", "B", "C"]);
 }

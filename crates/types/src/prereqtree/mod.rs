@@ -71,6 +71,16 @@ impl PrereqTree {
         }
     }
 
+    /// Returns one possible path that is shortest, but it must also contain all
+    /// of the modules listed in `require`.
+    pub(crate) fn min_path_filtered(
+        &self,
+        require: &Vec<String>,
+    ) -> Option<Vec<String>> {
+        let path = self._min_path_filtered(&require);
+        require.iter().all(|v| path.contains(v)).then_some(path)
+    }
+
     /// Returns every module found in the PrereqTree in a list.
     pub(crate) fn flatten(&self) -> Vec<String> {
         match self {
@@ -81,6 +91,30 @@ impl PrereqTree {
                 t.iter().for_each(|v| set.extend(v.flatten()));
                 Vec::from_iter(set)
             }
+        }
+    }
+}
+
+impl PrereqTree {
+    /// Simply a biased traversal that returns a shortest path biased towards
+    /// the filter. A final check will be done in the entry-point function to see if
+    /// the result actually contains all elements in the filter.
+    fn _min_path_filtered(&self, filter: &Vec<String>) -> Vec<String> {
+        match self {
+            Only(v) if v.is_empty() => vec![],
+            Only(only) => vec![only.to_string()],
+            And { and } => {
+                let mut set = HashSet::new();
+                and.iter()
+                    .for_each(|v| set.extend(v._min_path_filtered(filter)));
+                Vec::from_iter(set)
+            }
+            Or { or } => or
+                .iter()
+                .map(|v| v._min_path_filtered(filter))
+                .filter(|p| filter.iter().all(|f| p.contains(f)))
+                .min_by(|a, b| a.len().cmp(&b.len()))
+                .unwrap_or(vec![]),
         }
     }
 }
