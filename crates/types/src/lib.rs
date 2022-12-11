@@ -1,3 +1,4 @@
+use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -35,7 +36,7 @@ pub struct ModuleShort {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Module {
     #[serde(default)]
-    _id: bson::oid::ObjectId,
+    _id: ObjectId,
     #[serde(default, alias = "acadYear")]
     acad_year: String,
     #[serde(default)]
@@ -78,11 +79,14 @@ impl Module {
     pub fn satisfied_by(&self, done: &HashSet<String>) -> Result<()> {
         self.prereqtree.satisfied_by(self.code(), done)
     }
-    pub fn prereqtree_valid(&self) -> bool {
-        self.prereqtree.is_valid()
-    }
     pub fn prereqtree(&self) -> &PrereqTree {
         &self.prereqtree
+    }
+    pub fn prereqtree_contains(&self, module_code: &str) -> bool {
+        self.prereqtree.contains_code(module_code)
+    }
+    pub fn prereqtree_has_one_of(&self, module_code: &Vec<String>) -> bool {
+        module_code.iter().any(|code| self.prereqtree.contains_code(code))
     }
 }
 

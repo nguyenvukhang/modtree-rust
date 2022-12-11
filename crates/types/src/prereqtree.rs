@@ -6,10 +6,8 @@ use std::collections::HashSet;
 #[serde(untagged)]
 pub enum PrereqTree {
     Only(String),
-    // Node { and: Vec<PrereqTree>, or: Vec<PrereqTree> },
     And { and: Vec<PrereqTree> },
     Or { or: Vec<PrereqTree> },
-    // Node { and: Vec<PrereqTree>, or: Vec<PrereqTree> },
 }
 
 impl Default for PrereqTree {
@@ -19,11 +17,15 @@ impl Default for PrereqTree {
 }
 
 impl PrereqTree {
-    pub(crate) fn is_valid(&self) -> bool {
+    pub(crate) fn contains_code(&self, module_code: &str) -> bool {
         match self {
-            Self::Only(_) => true,
-            // Self::Node { and, or } => and.is_empty() ^ or.is_empty(),
-            _ => true,
+            PrereqTree::Only(only) => only.is_empty() || only.eq(module_code),
+            PrereqTree::And { and } => {
+                and.iter().any(|v| v.contains_code(module_code))
+            }
+            PrereqTree::Or { or } => {
+                or.iter().any(|v| v.contains_code(module_code))
+            }
         }
     }
     pub(crate) fn satisfied_by(
@@ -46,17 +48,6 @@ impl PrereqTree {
                 or.iter().fold(or.is_empty(), |a, p| a || p._satisfied_by(done))
             }
         }
-        // PrereqTree::Node { and, or } => {
-        //     match (and.is_empty(), or.is_empty()) {
-        //         (true, true) => true,
-        //         (false, _) => or
-        //             .iter()
-        //             .fold(or.is_empty(), |a, p| a || p._satisfied_by(done)),
-        //         (_, false) => {
-        //             and.iter().fold(true, |a, p| a && p._satisfied_by(done))
-        //         }
-        //     }
-        // }
     }
 }
 

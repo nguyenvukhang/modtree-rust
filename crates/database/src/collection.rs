@@ -1,3 +1,4 @@
+use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
@@ -29,7 +30,7 @@ impl ModuleCollection {
     pub async fn import_partial(
         &self,
         academic_year: &str,
-        count: usize
+        count: usize,
     ) -> Result<()> {
         use fetcher::Loader;
         let loader = Loader::new(academic_year)?;
@@ -45,7 +46,7 @@ impl ModuleCollection {
     pub async fn import_one(
         &self,
         academic_year: &str,
-        module_code: &str
+        module_code: &str,
     ) -> Result<()> {
         use fetcher::Loader;
         let loader = Loader::new(academic_year)?;
@@ -88,14 +89,28 @@ impl ModuleCollection {
 
     /// Lists all modules in database. Can get heavy.
     pub async fn list_all(&self) -> Result<Vec<Module>> {
-        use futures::stream::StreamExt;
         let cursor = self.0.find(None, None).await?;
         let v: Vec<_> = cursor.collect().await;
-        let valids = v.into_iter().filter_map(|v| v.ok()).map(|module| {
-            assert!(module.prereqtree_valid());
-            module
-        });
+        let valids = v.into_iter().filter_map(|v| v.ok());
         Ok(valids.collect())
+    }
+
+    /// Gets all modules whose prereqtrees contain a module which is in the list supplied.
+    pub async fn radar(
+        &self,
+        acad_year: &str,
+        done: Vec<String>,
+    ) -> Result<Vec<Module>> {
+        let mut cursor = self.0.find(doc! { "acad_year": acad_year }, None).await?;
+        let mut result = vec![];
+        while let Some(module) = cursor.next().await {
+            if let Ok(module) = module {
+                if module.prereqtree_has_one_of(&done) {
+                    result.push(module)
+                }
+            }
+        }
+        Ok(result)
     }
 
     pub async fn count(&self) -> Result<u64> {

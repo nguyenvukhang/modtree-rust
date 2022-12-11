@@ -55,12 +55,12 @@ impl Graph {
         }
     }
 
-    fn done_codes(&self) -> HashSet<String> {
+    fn done_codes<T: FromIterator<String>>(&self) -> T {
         self.done.iter().map(|v| v.code()).collect()
     }
 
     fn pretty(&self) -> String {
-        format!("Graph {:#?}", self.done_codes())
+        format!("Graph {:#?}", self.done_codes::<HashSet<_>>())
     }
 
     /// Tries to add a module by module code, at the same academic year as self.
@@ -84,11 +84,19 @@ impl Graph {
             Err(e) => eprintln!("{}", e),
         }
     }
+
     fn count(&self) -> usize {
         self.done.len()
     }
+
+    async fn radar(&self) -> Result<Vec<Module>> {
+        self.collection
+            .radar(&self.current_acad_year, self.done_codes::<Vec<_>>())
+            .await
+    }
 }
 
+/// Checks if the schema defined in the `types` crate works.
 async fn check_schema() -> Result<()> {
     let db = init_client().await?.test_db("check_schema");
     let mod_coll = db.modules();
@@ -106,18 +114,20 @@ async fn check_schema() -> Result<()> {
     Ok(())
 }
 
-async fn short_test() -> Result<()> {
+/// Goal: add a radar field to a module
+/// Module A is in Module B's radar iff Module A is one of the modules inside of
+/// Module B's prereqtree.
+async fn create_radar() -> Result<()> {
     let module_code = "MA2101";
     let db = init_db().await?;
     let mods = db.modules();
-    // mods.drop().await?;
-    // mods.import_one("2022-2023", module_code).await?;
-    mods.import_academic_year("2022-2023").await?;
-    let all = mods.list_all().await?;
-    let codes: Vec<_> = all.iter().map(|v| v.code()).collect();
-    println!("all->{codes:?}");
-    let la = mods.find_one(module_code, "2022/2023").await?;
-    println!("{module_code}.prereqtree->{:?}", la.prereqtree());
+    let mut graph = Graph::new("2022/2023", mods);
+    // graph.add("MA1301X").await;
+    graph.add("CS1010").await;
+    graph.add("CS1231").await;
+    let radar = graph.radar().await?;
+    let radar = radar.iter().map(|v| v.code()).collect::<Vec<String>>();
+    println!("radar->{:?}", radar);
     Ok(())
 }
 
@@ -125,6 +135,6 @@ async fn short_test() -> Result<()> {
 async fn main() {
     println!("crates::database!");
     // check_schema().await.unwrap();
-    play().await.unwrap();
-    // short_test().await.unwrap();
+    // play().await.unwrap();
+    create_radar().await.unwrap();
 }
