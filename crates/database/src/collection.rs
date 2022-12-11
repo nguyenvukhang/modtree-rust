@@ -2,7 +2,7 @@ use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::UpdateResult;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use types::{error, Error, Module, Result};
 
 #[derive(Debug)]
@@ -105,16 +105,24 @@ impl ModuleCollection {
         acad_year: &str,
         done: HashSet<String>,
         max_distance: u8,
-    ) -> Result<Vec<Module>> {
+    ) -> Result<HashMap<u8, Vec<Module>>> {
         let mut cursor =
             self.0.find(doc! { "acad_year": acad_year }, None).await?;
-        let mut result = vec![];
+        let mut result: HashMap<u8, Vec<Module>> = HashMap::new();
         while let Some(module) = cursor.next().await {
-            if let Ok(module) = module {
-                if module.prereqtree_has_one_of(&done)
-                    && module.prereqtree_min_to_unlock(&done) <= max_distance
-                {
-                    result.push(module)
+            let module = match module {
+                Ok(v) => v,
+                _ => continue,
+            };
+            if !module.prereqtree_has_one_of(&done) {
+                continue;
+            }
+            let to_unlock = module.prereqtree_min_to_unlock(&done);
+            if to_unlock <= max_distance {
+                if result.contains_key(&to_unlock) {
+                    result.entry(to_unlock).and_modify(|v| v.push(module));
+                } else {
+                    result.insert(to_unlock, vec![module]);
                 }
             }
         }

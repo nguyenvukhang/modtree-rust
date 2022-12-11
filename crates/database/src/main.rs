@@ -6,7 +6,7 @@ mod dump;
 use client::Client;
 use collection::ModuleCollection;
 use database::Database;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use types::{Module, Result};
 
 async fn init_client() -> Result<Client> {
@@ -89,7 +89,10 @@ impl Graph {
         self.done.len()
     }
 
-    async fn radar(&self, max_distance: u8) -> Result<Vec<Module>> {
+    async fn radar(
+        &self,
+        max_distance: u8,
+    ) -> Result<HashMap<u8, Vec<Module>>> {
         self.collection
             .radar(
                 &self.current_acad_year,
@@ -130,7 +133,10 @@ async fn create_radar() -> Result<()> {
     graph.add("CS1010").await;
     graph.add("CS1231").await;
     let radar = graph.radar(5).await?;
-    let radar = radar.iter().map(|v| v.code()).collect::<Vec<String>>();
+    let radar: HashMap<u8, Vec<String>> = radar
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().map(|v| v.code()).collect()))
+        .collect();
     println!("radar->{:?}", radar);
     println!("#radar->{:?}", radar.len());
     Ok(())
