@@ -67,3 +67,32 @@ fn min_unlock_test() {
     test(tree, t!(done, C), 0);
     test(tree, t!(done, A, C), 0);
 }
+
+#[test]
+fn min_path_test() {
+    use crate::prereqtree::util::vec_eq;
+    macro_rules! test {
+        ($tree:expr, $expected:expr, $equal:expr) => {
+            let expected: Vec<String> =
+                $expected.iter().map(|v| v.to_string()).collect();
+            let received = &$tree.min_path();
+            let ok = !$equal ^ vec_eq(&received, &expected, |a, b| a.eq(b));
+            if !ok {
+                println!("received->{:?}", received);
+                println!("expected->{:?}", expected);
+            }
+            assert!(ok);
+        };
+    }
+    let tree = t!(and, t!(A), t!(B), t!(C));
+    test!(tree, vec!["A", "B", "C"], true);
+    let tree = t!(or, t!(and, t!(A), t!(B)), t!(C));
+    test!(tree, vec!["C"], true);
+    let tree = t!(or, t!(and, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    test!(tree, vec!["A", "B"], true);
+    let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    test!(tree, vec!["A", "C", "D", "E"], true);
+    let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
+    test!(tree, vec!["A", "C"], true);
+}
+

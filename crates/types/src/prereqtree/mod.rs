@@ -1,7 +1,7 @@
 #[macro_use]
 mod macros;
-mod std_impl;
 mod experimental;
+mod std_impl;
 mod util;
 
 use crate::{Error, Result};
@@ -60,6 +60,33 @@ impl PrereqTree {
             }
             PrereqTree::Or { or } => {
                 or.iter().fold(or.is_empty(), |a, p| a || p._satisfied_by(done))
+            }
+        }
+    }
+
+    /// Returns one possible path that is shortest
+    fn min_path(&self) -> Vec<String> {
+        self._min_path(vec![])
+    }
+    fn _min_path(&self, mut path: Vec<String>) -> Vec<String> {
+        match self {
+            Only(v) if v.is_empty() => path,
+            Only(only) => {
+                path.push(only.to_string());
+                path
+            }
+            And { and } => {
+                let mut set = HashSet::new();
+                and.iter().for_each(|v| set.extend(v._min_path(vec![])));
+                path.extend(set);
+                path
+            }
+            Or { or } => {
+                let paths = or.iter().map(|v| v._min_path(vec![]));
+                if let Some(min) = paths.min_by(|a, b| a.len().cmp(&b.len())) {
+                    path.extend(min)
+                }
+                path
             }
         }
     }
