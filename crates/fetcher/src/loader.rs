@@ -88,7 +88,7 @@ impl Loader {
         if result.len() == target {
             Ok(result)
         } else {
-            Err(error!(UnableToLoadAllModules))?
+            Err(error!(UnableToLoadAllModules))
         }
     }
 

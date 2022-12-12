@@ -1,3 +1,4 @@
+use crate::prereqtree::util::vec_eq;
 use crate::prereqtree::PrereqTree;
 use std::collections::HashSet;
 
@@ -132,6 +133,7 @@ fn flatten_test() {
 }
 
 #[test]
+#[ignore]
 fn min_path_filtered_test() {
     use crate::prereqtree::util::vec_eq;
     macro_rules! mpf {
@@ -155,7 +157,11 @@ fn min_path_filtered_test() {
     mpf!(tree, vec!["A"], vec!["A", "B"]);
     mpf!(tree, vec!["C"]);
     // complex trees
-    let tree = t!(or, t!(and, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    let tree = t!(
+        or,
+        t!(and, t!(A), t!(B), t!(C), t!(D)),
+        t!(and, t!(E), t!(F), t!(G))
+    );
     mpf!(tree, vec![], vec!["A", "B"]);
     mpf!(tree, vec!["C"], vec!["C", "D", "E"]);
     let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
@@ -165,4 +171,45 @@ fn min_path_filtered_test() {
     let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
     mpf!(tree, vec!["A"], vec!["A", "C"]);
     mpf!(tree, vec!["B"], vec!["A", "B", "C"]);
+    let tree = t!(
+        and,
+        t!(or, t!(A), t!(B)),
+        t!(or, t!(C), t!(D)),
+        t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y))),
+        t!(or, t!(G), t!(H))
+    );
+    mpf!(tree, vec![], vec!["A", "C", "E", "G"]);
+    mpf!(tree, vec!["B"], vec!["B", "C", "E", "G"]);
+}
+
+#[test]
+fn all_paths() {
+    let tree = t!(
+        and,
+        t!(or, t!(A), t!(B)),
+        t!(or, t!(C), t!(D)),
+        t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y)))
+    );
+    let all_paths = tree.all_paths();
+    fn s(vec: &[&str]) -> Vec<String> {
+        s_vec(vec.to_vec())
+    }
+    assert!(vec_eq(
+        &all_paths,
+        &vec![
+            s(&["A", "C", "E"]),
+            s(&["A", "C", "F"]),
+            s(&["A", "C", "X", "Y"]),
+            s(&["A", "D", "E"]),
+            s(&["A", "D", "F"]),
+            s(&["A", "D", "X", "Y"]),
+            s(&["B", "C", "E"]),
+            s(&["B", "C", "F"]),
+            s(&["B", "C", "X", "Y"]),
+            s(&["B", "D", "E"]),
+            s(&["B", "D", "F"]),
+            s(&["B", "D", "X", "Y"]),
+        ],
+        |a, b| vec_eq(a, b, |a, b| a.eq(b))
+    ));
 }

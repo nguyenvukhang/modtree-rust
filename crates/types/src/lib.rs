@@ -85,11 +85,24 @@ impl Module {
     pub fn prereqtree_contains(&self, module_code: &str) -> bool {
         self.prereqtree.contains_code(module_code)
     }
+    pub fn prereqtree_flatten(&self) -> Vec<String> {
+        self.prereqtree.flatten()
+    }
     pub fn prereqtree_has_one_of(&self, module_code: &HashSet<String>) -> bool {
         module_code.iter().any(|code| self.prereqtree.contains_code(code))
     }
-    pub fn prereqtree_min_to_unlock(&self, done: &HashSet<String>) -> u8 {
+    pub fn min_to_unlock(&self, done: &HashSet<String>) -> u8 {
         self.prereqtree.min_to_unlock(done)
+    }
+    pub fn min_path(&self) -> Vec<String> {
+        self.prereqtree.min_path()
+    }
+    pub fn min_path_filtered<S>(&self, filter: &Vec<S>) -> Option<Vec<String>>
+    where
+        S: AsRef<str>,
+    {
+        let f: Vec<_> = filter.iter().map(|v| v.as_ref().to_string()).collect();
+        self.prereqtree.min_path_filtered(&f)
     }
 }
 

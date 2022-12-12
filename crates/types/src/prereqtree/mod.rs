@@ -75,10 +75,10 @@ impl PrereqTree {
     /// of the modules listed in `require`.
     pub(crate) fn min_path_filtered(
         &self,
-        require: &Vec<String>,
+        filter: &Vec<String>,
     ) -> Option<Vec<String>> {
-        let path = self._min_path_filtered(&require);
-        require.iter().all(|v| path.contains(v)).then_some(path)
+        let path = self._min_path_filtered(&filter);
+        filter.iter().all(|v| path.contains(v)).then_some(path)
     }
 
     /// Returns every module found in the PrereqTree in a list.
@@ -90,6 +90,22 @@ impl PrereqTree {
                 let mut set = HashSet::new();
                 t.iter().for_each(|v| set.extend(v.flatten()));
                 Vec::from_iter(set)
+            }
+        }
+    }
+
+    /// Returns every valid path taken to satisfy this prereqtree.
+    pub(crate) fn all_paths(&self) -> Vec<Vec<String>> {
+        match self {
+            Only(only) if only.is_empty() => vec![],
+            Only(only) => vec![vec![only.to_string()]],
+            Or { or: t } => {
+                // several possible journeys.
+                t.iter().flat_map(|subtree| subtree.all_paths()).collect()
+            }
+            And { and: t } => {
+                // cross-chains all children journeys into one.
+                util::weave(&t.iter().map(|st| st.all_paths()).collect())
             }
         }
     }
@@ -112,7 +128,9 @@ impl PrereqTree {
             Or { or } => or
                 .iter()
                 .map(|v| v._min_path_filtered(filter))
-                .filter(|p| filter.iter().all(|f| p.contains(f)))
+                // TODO: write a all_paths method that generates all valid paths
+                // and then filter from that list
+                .filter(|p| filter.iter().any(|f| p.contains(f)))
                 .min_by(|a, b| a.len().cmp(&b.len()))
                 .unwrap_or(vec![]),
         }

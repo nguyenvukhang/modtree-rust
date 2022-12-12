@@ -149,7 +149,14 @@ async fn create_radar() -> Result<()> {
 async fn short() -> Result<()> {
     let db = init_db().await?;
     let mods = db.modules();
-    let all_mods = mods.list_all().await?;
+    let module = mods.find_one("CS3244", "2022/2023").await?;
+    println!("tree->{:?}", module.prereqtree());
+    let flat_tree = module.prereqtree_flatten();
+    println!("tree(flat)->{flat_tree:?}");
+    let min_path = module.min_path();
+    println!("min_path->{min_path:?}");
+    let filtered = module.min_path_filtered(&vec!["CS2040"]);
+    println!("min_path->{filtered:?}");
     Ok(())
 }
 
@@ -158,5 +165,5 @@ async fn main() {
     println!("crates::database!");
     // check_schema().await.unwrap();
     // play().await.unwrap();
-    create_radar().await.unwrap();
+    short().await.unwrap();
 }
