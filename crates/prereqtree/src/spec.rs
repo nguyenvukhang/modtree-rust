@@ -131,7 +131,6 @@ fn flatten_test() {
 }
 
 #[test]
-#[ignore]
 fn min_path_filtered_test() {
     macro_rules! mpf {
         ($tree:expr, $filter:expr, $expected:expr) => {
@@ -154,20 +153,20 @@ fn min_path_filtered_test() {
     mpf!(tree, vec!["A"], vec!["A", "B"]);
     mpf!(tree, vec!["C"]);
     // complex trees
+    // or(and, and)
     let tree = t!(
         or,
         t!(and, t!(A), t!(B), t!(C), t!(D)),
         t!(and, t!(E), t!(F), t!(G))
     );
-    mpf!(tree, vec![], vec!["A", "B"]);
-    mpf!(tree, vec!["C"], vec!["C", "D", "E"]);
+    mpf!(tree, vec![], vec!["E", "F", "G"]);
+    mpf!(tree, vec!["C"], vec!["A", "B", "C", "D"]);
+
+    // and(or, and)
     let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
     mpf!(tree, vec!["A"], vec!["A", "C", "D", "E"]);
     mpf!(tree, vec!["B"], vec!["B", "C", "D", "E"]);
-    mpf!(tree, vec!["C"], vec!["C", "D", "E"]);
-    let tree = t!(or, t!(and, t!(A), t!(B), t!(C)), t!(and, t!(A), t!(C)));
-    mpf!(tree, vec!["A"], vec!["A", "C"]);
-    mpf!(tree, vec!["B"], vec!["A", "B", "C"]);
+
     let tree = t!(
         and,
         t!(or, t!(A), t!(B)),

@@ -72,13 +72,16 @@ impl PrereqTree {
     }
 
     /// Returns one possible path that is shortest, but it must also contain all
-    /// of the modules listed in `require`.
+    /// of the modules listed in `required`.
     pub fn min_path_filtered(
         &self,
-        filter: &Vec<String>,
+        required: &Vec<String>,
     ) -> Option<Vec<String>> {
-        let path = self._min_path_filtered(&filter);
-        filter.iter().all(|v| path.contains(v)).then_some(path)
+        self.all_paths()
+            .into_iter()
+            // must contain all required modules
+            .filter(|p| required.iter().all(|r| p.contains(r)))
+            .min_by(|a, b| a.len().cmp(&b.len()))
     }
 
     /// Returns every module found in the PrereqTree in a list.
