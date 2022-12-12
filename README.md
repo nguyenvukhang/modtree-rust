@@ -1,5 +1,21 @@
 # Roadmap
 
+**Stretch goal**: Select some modules, and get all possible min-routes
+(no unnecessary modules) through them, ranked by length. Filter by
+particular node requirements (module, year, sem), and number of mods
+per sem.
+
+**Goal**: Select some modules, `modtree` outputs a Semester List of
+which modules to take when. Hard-coded maximum of 5 mods per sem.
+
+## Up Next
+
+- [ ] prereqtree.remove(code: String).
+      remove a module from a prereqtree when performing dynamic
+      calculations, such as when sorting in topological order.
+- [ ] Write a topological sort
+      tiebreak by number of modules it unlocks/partially unlocks
+
 ## Module completion
 
 Pre-requisite trees are not going to be directly related to inter-node
