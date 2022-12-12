@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;

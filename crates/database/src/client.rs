@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::database::Database;
 use mongodb::options::{ClientOptions, Credential, ServerAddress};
 use std::env;
@@ -12,6 +14,14 @@ pub struct Client {
 }
 
 impl Client {
+    /// Quick initializer of a client.
+    pub async fn debug_init() -> Result<(Self, Database)> {
+        let mut client = Client::new("localhost:27017").await?;
+        client.assert_running()?;
+        let db = client.modtree_db();
+        Ok((client, db))
+    }
+
     /// Creates a new mongo-db client, which will have access to databases.
     pub async fn new(url: &str) -> Result<Self> {
         dotenv::dotenv().expect(".env file not found");

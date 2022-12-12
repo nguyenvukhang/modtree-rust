@@ -105,16 +105,13 @@ impl From<mongodb::bson::ser::Error> for Error {
 
 #[macro_export]
 macro_rules! error {
-    ($type:ident) => {
-        Error::$type
-    };
     ($type:ident, $($args:expr),*) => {
         Error::$type($($args.into()),*)
     };
 }
 
+#[test]
 fn compile_test() {
-    error!(UnableToLoadAllModules);
     error!(RequiresAbsolutePath, "/hello");
     error!(PrerequisitesNotSatisfied, "CS2040", "CS1010");
 }

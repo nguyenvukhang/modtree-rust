@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::util;
 use futures::prelude::*;
 use serde::de::DeserializeOwned;
@@ -88,7 +90,7 @@ impl Loader {
         if result.len() == target {
             Ok(result)
         } else {
-            Err(error!(UnableToLoadAllModules))
+            Err(Error::UnableToLoadAllModules)
         }
     }
 

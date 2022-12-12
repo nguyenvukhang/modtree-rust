@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use postgres::{Client, Error, NoTls};
 
 pub fn run() -> Result<(), Error> {
