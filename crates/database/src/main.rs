@@ -107,24 +107,6 @@ impl Graph {
     }
 }
 
-/// Checks if the schema defined in the `types` crate works.
-async fn check_schema() -> Result<()> {
-    let db = init_client().await?.test_db("check_schema");
-    let mod_coll = db.modules();
-    mod_coll.drop().await?;
-    mod_coll.import_academic_year("2021-2022").await?;
-    mod_coll.import_academic_year("2022-2023").await?;
-    println!("Successful JSON import");
-    let modules = mod_coll.list_all().await?;
-    println!("Successful struct collect");
-    let total = mod_coll.count().await?;
-    println!("[check schema] #module.collection->{total}");
-    let valids = modules.len() as u64;
-    println!("[check schema] #vec<module>->{valids}");
-    println!("[check schema] match ? {}", valids == total);
-    Ok(())
-}
-
 /// Goal: add a radar field to a module
 /// Module A is in Module B's radar iff Module A is one of the modules inside of
 /// Module B's prereqtree.
@@ -149,21 +131,16 @@ async fn create_radar() -> Result<()> {
 async fn short() -> Result<()> {
     let db = init_db().await?;
     let mods = db.modules();
-    let module = mods.find_one("CS3244", "2022/2023").await?;
-    println!("tree->{:?}", module.prereqtree());
-    let flat_tree = module.prereqtree_flatten();
-    println!("tree(flat)->{flat_tree:?}");
-    let min_path = module.min_path();
-    println!("min_path->{min_path:?}");
-    let filtered = module.min_path_filtered(&vec!["CS2040"]);
-    println!("min_path->{filtered:?}");
+    mods.drop().await?;
+    let module = mods.find_one("ZB3311", "2022/2023").await?;
+    println!("mod -> {:?}", module);
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    // check_schema().await.unwrap();
     // play().await.unwrap();
+    // check_schema().await.unwrap();
     short().await.unwrap();
 }

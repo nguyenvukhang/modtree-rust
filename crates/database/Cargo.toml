@@ -13,3 +13,4 @@ serde = { version = "1.0", features = ["derive"] }
 dotenv = "0.15.0"
 types = { version = "0.0.1", path = "../types" }
 fetcher = { version = "0.0.1", path = "../fetcher" }
+prereqtree = { version = "0.0.1", path = "../prereqtree" }

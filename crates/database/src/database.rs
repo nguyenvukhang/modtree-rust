@@ -13,6 +13,10 @@ impl Database {
         ModuleCollection::new(self.0.collection::<Module>("modules"))
     }
 
+    pub fn name<'a>(&'a self) -> &'a str {
+        self.0.name()
+    }
+
     pub async fn first_time_setup(&self) -> Result<()> {
         // list of all collections used.
         let collections = ["modules"];

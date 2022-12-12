@@ -1,12 +1,15 @@
 #[macro_use]
 mod macros;
+mod loader;
 mod std_impl;
 mod util;
 
+use loader::Loader;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::future::Future;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PrereqTree {
     Only(String),
@@ -23,6 +26,14 @@ impl PrereqTree {
             Only(only) => !only.is_empty() && only.eq(module_code),
             And { and } => and.iter().any(|v| v.contains_code(module_code)),
             Or { or } => or.iter().any(|v| v.contains_code(module_code)),
+        }
+    }
+
+    /// Checks if prereqtree is a leaf node.
+    pub fn is_leaf(&self) -> bool {
+        match self {
+            Only(only) if only.is_empty() => true,
+            _ => false,
         }
     }
 
@@ -112,31 +123,20 @@ impl PrereqTree {
             }
         }
     }
-}
 
-impl PrereqTree {
-    /// Simply a biased traversal that returns a shortest path biased towards
-    /// the filter. A final check will be done in the entry-point function to see if
-    /// the result actually contains all elements in the filter.
-    fn _min_path_filtered(&self, filter: &Vec<String>) -> Vec<String> {
-        match self {
-            Only(v) if v.is_empty() => vec![],
-            Only(only) => vec![only.to_string()],
-            And { and } => {
-                let mut set = HashSet::new();
-                and.iter()
-                    .for_each(|v| set.extend(v._min_path_filtered(filter)));
-                Vec::from_iter(set)
-            }
-            Or { or } => or
-                .iter()
-                .map(|v| v._min_path_filtered(filter))
-                // TODO: write a all_paths method that generates all valid paths
-                // and then filter from that list
-                .filter(|p| filter.iter().any(|f| p.contains(f)))
-                .min_by(|a, b| a.len().cmp(&b.len()))
-                .unwrap_or(vec![]),
-        }
+    pub async fn expand_tree<F, R>(&mut self, loader: F) -> Option<Self>
+    where
+        F: Fn(String) -> R,
+        R: Future<Output = Option<Self>>,
+    {
+        // let cache: HashMap<String, PrereqTree> = HashMap::new();
+        let mut loader = Loader::new(loader);
+        loader.get("CS2040".to_string()).await;
+        loader.get("CS2040".to_string()).await;
+        loader.get("CS1010".to_string()).await;
+        // let val = loader("CS2040".to_string()).await.ok_or(not_found())?;
+        // println!("loaded: {:?}", val);
+        Some(self.clone())
     }
 }
 

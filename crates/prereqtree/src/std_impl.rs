@@ -1,5 +1,24 @@
 use crate::util::vec_eq;
 use crate::PrereqTree;
+use serde_json::to_string_pretty;
+use std::fmt;
+
+impl fmt::Debug for PrereqTree {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Only(v) => write!(f, "{v}"),
+            Self::Or { or: t } => write!(f, "OR {t:?}"),
+            Self::And { and: t } => write!(f, "AND {t:?}"),
+        }
+    }
+}
+
+impl fmt::Display for PrereqTree {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let t = to_string_pretty(self).unwrap_or("[Invalid tree]".to_string());
+        write!(f, "{t}")
+    }
+}
 
 impl Default for PrereqTree {
     fn default() -> Self {

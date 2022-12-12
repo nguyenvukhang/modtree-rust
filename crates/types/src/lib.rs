@@ -28,7 +28,7 @@ pub struct ModuleShort {
     #[serde(alias = "moduleCode")]
     pub module_code: String,
     pub title: String,
-    pub semesters: Vec<u8>,
+    pub semesters: Vec<i32>,
 }
 
 /// [nusmods] Literally everything about a module.
@@ -60,6 +60,9 @@ pub struct Module {
     fulfill_requirements: Vec<String>,
     #[serde(default)]
     workload: Workload,
+    // extra stuff
+    #[serde(default)]
+    semesters: Vec<i32>,
 }
 
 impl ModuleShort {
@@ -75,11 +78,14 @@ impl Module {
     pub fn academic_year(&self) -> String {
         self.acad_year.to_string()
     }
+    pub fn is_leaf(&self) -> bool {
+        self.prereqtree.is_leaf()
+    }
     pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         self.prereqtree.satisfied_by(done)
     }
-    pub fn prereqtree(&self) -> &PrereqTree {
-        &self.prereqtree
+    pub fn prereqtree(&self) -> PrereqTree {
+        self.prereqtree.clone()
     }
     pub fn prereqtree_contains(&self, module_code: &str) -> bool {
         self.prereqtree.contains_code(module_code)

@@ -21,6 +21,9 @@ pub enum Error {
     #[error("Not found")]
     NotFound,
 
+    #[error("Module not found: {0}")]
+    ModuleNotFound(String),
+
     #[error("Pre-requisites not satisfied for module: {0} -> {1}")]
     PrerequisitesNotSatisfied(String, String),
 
@@ -47,6 +50,9 @@ pub enum Error {
 
     #[error("Unable to parse float: {0:#?}")]
     ParseFloatError(std::num::ParseFloatError),
+
+    #[error("Tried to delete a core database: {0}")]
+    MongoDbBadDrop(String),
 }
 
 impl From<reqwest::Error> for Error {

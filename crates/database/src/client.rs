@@ -42,7 +42,7 @@ impl Client {
         Database::new(self.c.database("modtree"))
     }
 
-    /// The database of modtree.
+    /// Get a handle to a custom database.
     pub fn test_db(&mut self, name: &str) -> Database {
         Database::new(self.c.database(name))
     }
@@ -71,6 +71,16 @@ impl Client {
             db.drop(None).await?;
         }
         Ok(())
+    }
+
+    /// Drops (delete) a database that is not one of "admin", "config", or "local".
+    pub async fn drop_database(&mut self, name: &str) -> Result<()> {
+        match name {
+            "admin" | "config" | "local" => {
+                Err(Error::MongoDbBadDrop(name.to_string()))
+            }
+            db => Ok(self.c.database(db).drop(None).await?),
+        }
     }
 }
 

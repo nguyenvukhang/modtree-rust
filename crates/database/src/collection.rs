@@ -46,8 +46,8 @@ impl ModuleCollection {
 
     pub async fn import_one(
         &self,
-        academic_year: &str,
         module_code: &str,
+        academic_year: &str,
     ) -> Result<()> {
         use fetcher::Loader;
         let loader = Loader::new(academic_year)?;
@@ -57,6 +57,29 @@ impl ModuleCollection {
         println!("Inserting modules to mongo-db...");
         self.insert_one(&module).await?;
         println!("Done.");
+        Ok(())
+    }
+
+    /// Imports the availability of each module at each semester.
+    /// (Some modules are only available in sem 1)
+    pub async fn import_semester_data(
+        &self,
+        academic_year: &str,
+    ) -> Result<()> {
+        use fetcher::Loader;
+        let loader = Loader::new(academic_year)?;
+        let academic_year = &academic_year.replace("-", "/");
+        let module_list = loader.load_module_list().await?;
+        eprintln!("Loading module list from JSON...");
+        let handles = module_list.iter().map(|module| async move {
+            let query = doc! { "module_code": module.code(), "acad_year": academic_year };
+            let doc = doc! { "$set": { "semesters": &module.semesters } };
+            // println!("[{}]->{:?}", module.code(), module.semesters);
+            self.0.update_one(query.clone(), doc, None).await
+        });
+        eprintln!("Updating modules in mongo-db...");
+        futures::future::join_all(handles).await;
+        eprintln!("Done.");
         Ok(())
     }
 
@@ -143,6 +166,26 @@ impl ModuleCollection {
             "acad_year": acad_year,
         };
         let result = self.0.find_one(filter, None).await?;
-        result.ok_or(error!(NotFound))
+        result.ok_or(error!(ModuleNotFound, module_code.to_string()))
+    }
+
+    /// Gets a full path down to modules with no requirements.
+    pub async fn min_path(
+        &self,
+        module_code: &str,
+        acad_year: &str,
+    ) -> Result<()> {
+        let filter = doc! {
+            "module_code": module_code,
+            "acad_year": acad_year,
+        };
+        let root_module = self.0.find_one(filter, None).await?.unwrap();
+        let mut tree = root_module.prereqtree();
+        let loader = |code: String| async move {
+            let a = self.find_one(&code, acad_year).await;
+            a.ok().map(|m| m.prereqtree())
+        };
+        let tree = tree.expand_tree(loader).await.unwrap();
+        Ok(())
     }
 }
