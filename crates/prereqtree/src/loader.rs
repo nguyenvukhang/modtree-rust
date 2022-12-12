@@ -19,17 +19,14 @@ where
         Self { source, cache: HashMap::new() }
     }
 
-    pub async fn get(&mut self, code: String) -> Option<PrereqTree> {
+    pub async fn get(&mut self, code: &str) -> Option<PrereqTree> {
         let source = &self.source;
-        if let Some(tree) = self.cache.get(&code) {
+        if let Some(tree) = self.cache.get(code) {
             return Some(tree.clone());
         }
-        match source(code.clone()).await {
-            Some(tree) => {
-                self.cache.insert(code, tree.clone());
-                Some(tree)
-            }
-            None => None,
-        }
+        source(code.to_string()).await.map(|tree| {
+            self.cache.insert(code.to_string(), tree.clone());
+            tree
+        })
     }
 }

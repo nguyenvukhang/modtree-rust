@@ -187,7 +187,8 @@ impl ModuleCollection {
             let a = self.find_one(&code, acad_year).await;
             a.ok().map(|m| m.prereqtree())
         };
-        let tree = tree.expand_tree(loader).await.unwrap();
+        let globalist = tree.global_flatten(loader).await;
+        println!("globalist->{globalist:?}");
         Ok(())
     }
 }

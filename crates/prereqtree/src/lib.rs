@@ -124,19 +124,31 @@ impl PrereqTree {
         }
     }
 
-    pub async fn expand_tree<F, R>(&mut self, loader: F) -> Option<Self>
+    /// Flattens the tree until leaf nodes are reached.
+    pub async fn global_flatten<F, R>(&mut self, loader: F) -> Vec<String>
     where
         F: Fn(String) -> R,
         R: Future<Output = Option<Self>>,
     {
-        // let cache: HashMap<String, PrereqTree> = HashMap::new();
+        let mut remaining: Vec<String> = self.flatten();
+        let mut result: HashSet<String> = HashSet::new();
         let mut loader = Loader::new(loader);
-        loader.get("CS2040".to_string()).await;
-        loader.get("CS2040".to_string()).await;
-        loader.get("CS1010".to_string()).await;
-        // let val = loader("CS2040".to_string()).await.ok_or(not_found())?;
-        // println!("loaded: {:?}", val);
-        Some(self.clone())
+        while let Some(code) = remaining.pop() {
+            match loader.get(&code).await {
+                Some(And { and: t } | Or { or: t }) => remaining.extend(
+                    t.iter()
+                        .flat_map(|v| v.flatten())
+                        .filter(|v| !result.contains(v)),
+                ),
+                Some(Only(only)) if !only.is_empty() => {
+                    result.insert(only);
+                }
+                _ => {
+                    result.insert(code);
+                }
+            }
+        }
+        Vec::from_iter(result)
     }
 }
 
