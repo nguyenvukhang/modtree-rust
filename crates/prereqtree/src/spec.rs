@@ -1,5 +1,5 @@
-use crate::prereqtree::util::vec_eq;
-use crate::prereqtree::PrereqTree;
+use crate::util::vec_eq;
+use crate::PrereqTree;
 use std::collections::HashSet;
 
 #[cfg(test)]
@@ -71,7 +71,6 @@ fn min_to_unlock_test() {
 
 #[test]
 fn min_path_test() {
-    use crate::prereqtree::util::vec_eq;
     macro_rules! test {
         ($tree:expr, $expected:expr, $equal:expr) => {
             let expected = s_vec($expected);
@@ -98,7 +97,6 @@ fn min_path_test() {
 
 #[test]
 fn flatten_test() {
-    use crate::prereqtree::util::vec_eq;
     macro_rules! flat {
         ($tree:expr, $expected:expr) => {
             let expected = s_vec($expected);
@@ -135,7 +133,6 @@ fn flatten_test() {
 #[test]
 #[ignore]
 fn min_path_filtered_test() {
-    use crate::prereqtree::util::vec_eq;
     macro_rules! mpf {
         ($tree:expr, $filter:expr, $expected:expr) => {
             let expected = s_vec($expected);

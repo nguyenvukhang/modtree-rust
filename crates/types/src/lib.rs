@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 mod errors;
-mod prereqtree;
 pub use errors::*;
 use prereqtree::PrereqTree;
 

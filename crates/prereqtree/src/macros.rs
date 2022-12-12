@@ -2,13 +2,13 @@
 #[macro_export]
 macro_rules! t {
     () => {
-        crate::prereqtree::PrereqTree::Only("".to_string())
+        crate::PrereqTree::Only("".to_string())
     };
     (and, $($module:expr),*) => {
-        crate::prereqtree::PrereqTree::And { and: vec![ $(($module),)*] }
+        crate::PrereqTree::And { and: vec![ $(($module),)*] }
     };
     (or, $($module:expr),*) => {
-        crate::prereqtree::PrereqTree::Or { or: vec![ $(($module),)*] }
+        crate::PrereqTree::Or { or: vec![ $(($module),)*] }
     };
     (done, $($module:ident),*) => {{
         let mut vec: Vec<String> = vec![];
@@ -21,6 +21,6 @@ macro_rules! t {
         std::collections::HashSet::new()
     };
     ($t:ident) => {
-        crate::prereqtree::PrereqTree::Only(stringify!($t).to_string())
+        crate::PrereqTree::Only(stringify!($t).to_string())
     };
 }

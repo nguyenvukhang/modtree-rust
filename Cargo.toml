@@ -20,4 +20,5 @@ members = [
   "crates/fetcher",
   "crates/database",
   "crates/types",
+  "crates/prereqtree"
 ]

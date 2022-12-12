@@ -18,7 +18,7 @@ use PrereqTree::*;
 /// Public-facing API
 impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
-    pub(crate) fn contains_code(&self, module_code: &str) -> bool {
+    pub fn contains_code(&self, module_code: &str) -> bool {
         match self {
             Only(only) => !only.is_empty() && only.eq(module_code),
             And { and } => and.iter().any(|v| v.contains_code(module_code)),
@@ -27,7 +27,7 @@ impl PrereqTree {
     }
 
     /// Counts the minimum number of modules required to satisfy the tree.
-    pub(crate) fn min_to_unlock(&self, done: &HashSet<String>) -> u8 {
+    pub fn min_to_unlock(&self, done: &HashSet<String>) -> u8 {
         match self {
             Only(only) => match only.is_empty() || done.contains(only) {
                 true => 0,
@@ -41,7 +41,7 @@ impl PrereqTree {
     }
 
     /// Checks if a set of modules done satisfies the prereqtree.
-    pub(crate) fn satisfied_by(&self, done: &HashSet<String>) -> bool {
+    pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
             Only(only) => only.is_empty() || done.contains(only),
             And { and } => {
@@ -54,7 +54,7 @@ impl PrereqTree {
     }
 
     /// Returns one possible path that is shortest.
-    pub(crate) fn min_path(&self) -> Vec<String> {
+    pub fn min_path(&self) -> Vec<String> {
         match self {
             Only(v) if v.is_empty() => vec![],
             Only(only) => vec![only.to_string()],
@@ -73,7 +73,7 @@ impl PrereqTree {
 
     /// Returns one possible path that is shortest, but it must also contain all
     /// of the modules listed in `require`.
-    pub(crate) fn min_path_filtered(
+    pub fn min_path_filtered(
         &self,
         filter: &Vec<String>,
     ) -> Option<Vec<String>> {
@@ -82,7 +82,7 @@ impl PrereqTree {
     }
 
     /// Returns every module found in the PrereqTree in a list.
-    pub(crate) fn flatten(&self) -> Vec<String> {
+    pub fn flatten(&self) -> Vec<String> {
         match self {
             Only(only) if only.is_empty() => vec![],
             Only(only) => vec![only.to_string()],
@@ -95,7 +95,7 @@ impl PrereqTree {
     }
 
     /// Returns every valid path taken to satisfy this prereqtree.
-    pub(crate) fn all_paths(&self) -> Vec<Vec<String>> {
+    pub fn all_paths(&self) -> Vec<Vec<String>> {
         match self {
             Only(only) if only.is_empty() => vec![],
             Only(only) => vec![vec![only.to_string()]],

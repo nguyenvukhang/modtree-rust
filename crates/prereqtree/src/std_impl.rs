@@ -1,5 +1,5 @@
-use crate::prereqtree::util::vec_eq;
-use crate::prereqtree::PrereqTree;
+use crate::util::vec_eq;
+use crate::PrereqTree;
 
 impl Default for PrereqTree {
     fn default() -> Self {
