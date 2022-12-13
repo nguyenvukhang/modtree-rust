@@ -19,7 +19,22 @@ fn fetch(val: u8) -> u8 {
         .unwrap()
         .stdout;
     let stdout = String::from_utf8_lossy(&stdout).to_string();
-    stdout.trim().parse::<u8>().unwrap()
+    stdout.trim().parse().unwrap()
+}
+
+impl Iterator for Data {
+    type Item = u8;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut v = self.data.pop();
+        while v.is_none() && !self.data.is_done() {
+            v = self.data.pop();
+        }
+        match (v, self.data.is_done()) {
+            (None, true) => self.close(),
+            _ => {}
+        };
+        v
+    }
 }
 
 impl Data {
@@ -27,34 +42,30 @@ impl Data {
         Self { data: Arc::new(TSQ::new()), thread: None }
     }
 
-    fn main() {
-        println!("Data::main()");
-        let mut core = Data::new();
-        core.gather();
-        while core.data.len() < 10 {
-            println!("waiting");
-            thread::sleep(Duration::new(0, 100_000_100));
-        }
-        let a = core.thread.map(|v| v.join());
-        println!("{a:?}")
-    }
-
     fn gather(&mut self) {
         let data = Arc::clone(&self.data);
         let t = thread::spawn(move || {
             for i in 0..20 {
-                // sleep();
-                fetch(i);
-                data.push(i);
-                println!("{i}")
+                data.push(fetch(i));
             }
+            data.done();
             "hello!".to_string()
         });
         self.thread = Some(t);
     }
+
+    fn close(&mut self) {
+        std::mem::take(&mut self.thread).map(|v| v.join());
+    }
 }
 
 fn main() {
-    println!("{}", fetch(1));
-    Data::main()
+    println!("Data::main()");
+    let mut src = Data::new();
+    src.gather();
+
+    for i in src {
+        println!("{i}")
+    }
+    // src.close();
 }

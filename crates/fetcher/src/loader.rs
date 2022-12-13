@@ -5,12 +5,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use types::{Error, Module, NusmodsModuleShort, Result};
 
-#[derive(Debug)]
-pub struct Loader(FileParser);
-
 /// The spirit of this loader is to always do a two-step fetch:
 ///   1. from local cache
 ///   2. from remote data (only when step 1 fails)
+#[derive(Debug)]
+pub struct Loader(FileParser);
+
 impl Loader {
     pub fn new(academic_year: &str) -> Result<Self> {
         Ok(Self(FileParser::new(academic_year)?))
