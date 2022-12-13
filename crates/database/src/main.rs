@@ -10,14 +10,18 @@ use types::Result;
 async fn test() -> Result<()> {
     let (_, db) = Client::debug_init().await?;
     let mods = db.modules();
-    // let module = mods.find_one("CS3244", "2022/2023").await?;
-    // println!("mod -> {:?}", module);
-    mods.min_path("CS3244", "2022/2023").await?;
+    let all = mods.list_all().await?;
+    for module in all {
+        if module.semesters.len() == 3 {
+            println!("{module:?}");
+        }
+    }
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
     println!("crates::database!");
-    test().await.unwrap();
+    dump::test_schema().await;
+    // test().await.unwrap();
 }

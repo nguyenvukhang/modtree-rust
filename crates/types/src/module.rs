@@ -34,8 +34,9 @@ pub struct Module {
     #[serde(default)]
     workload: Workload,
     // extra stuff
+    // TODO: toggle back the pub
     #[serde(default)]
-    semesters: Vec<i32>,
+    pub semesters: Vec<i32>,
 }
 
 impl Module {
