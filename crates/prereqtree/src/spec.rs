@@ -1,6 +1,6 @@
 use crate::util::vec_eq;
 use crate::PrereqTree;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[cfg(test)]
 fn s_vec(s: Vec<&str>) -> Vec<String> {
@@ -37,10 +37,10 @@ fn satisfied_by_test() {
 }
 
 #[test]
-fn min_to_unlock_test() {
+fn left_to_unlock_test() {
     macro_rules! test {
         ($tree:expr, $done:expr, $expect:expr) => {
-            assert_eq!($tree.min_to_unlock(&$done), $expect);
+            assert_eq!($tree.left_to_unlock(&$done), $expect);
         };
     }
     // empty tree
@@ -260,4 +260,51 @@ fn resolve_test() {
             t!(or, t!(G), t!(H))
         )
     );
+}
+
+#[test]
+fn min_to_unlock_test() {
+    macro_rules! test {
+        ($tree:expr, $expect:expr) => {
+            assert_eq!($tree.min_to_unlock(), $expect);
+        };
+    }
+    let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    test!(tree, 4);
+    let tree = t!(
+        and,
+        t!(or, t!(A), t!(B)),
+        t!(or, t!(C), t!(D)),
+        t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y))),
+        t!(or, t!(G), t!(H))
+    );
+    test!(tree, 4);
+}
+
+#[test]
+fn topological_sort_test() {
+    let mut expected = vec![];
+    let mut add = |code: &str, tree| {
+        expected.push((code.to_string(), tree));
+    };
+    add("B", t!());
+    add("C", t!());
+    add("D", t!(C));
+    add("A", t!(or, t!(D), t!(E)));
+    add("E", t!());
+    add("G", t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E))));
+    add("X", t!(A));
+    add("Y", t!(B));
+    add(
+        "Z",
+        t!(
+            and,
+            t!(or, t!(A), t!(B)),
+            t!(or, t!(C), t!(D)),
+            t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y))),
+            t!(or, t!(G), t!(H))
+        ),
+    );
+    let received = PrereqTree::topological_sort(expected.clone());
+    assert_eq!(received, expected);
 }

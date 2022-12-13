@@ -6,7 +6,7 @@ mod util;
 
 use loader::Loader;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::mem;
 
@@ -41,16 +41,29 @@ impl PrereqTree {
     }
 
     /// Counts the minimum number of modules required to satisfy the tree.
-    pub fn min_to_unlock(&self, done: &HashSet<String>) -> u8 {
+    pub fn min_to_unlock(&self) -> u8 {
+        match self {
+            Empty => 0,
+            Only(_) => 1,
+            And { and } => and.iter().map(|v| v.min_to_unlock()).sum(),
+            Or { or } => {
+                or.iter().map(|v| v.min_to_unlock()).min().unwrap_or(0)
+            }
+        }
+    }
+
+    /// Counts the minimum number of modules required to satisfy the tree, given
+    /// a list that is already done.
+    pub fn left_to_unlock(&self, done: &HashSet<String>) -> u8 {
         match self {
             Empty => 0,
             Only(only) => match done.contains(only) {
                 true => 0,
                 false => 1,
             },
-            And { and } => and.iter().map(|v| v.min_to_unlock(done)).sum(),
+            And { and } => and.iter().map(|v| v.left_to_unlock(done)).sum(),
             Or { or } => {
-                or.iter().map(|v| v.min_to_unlock(done)).min().unwrap_or(0)
+                or.iter().map(|v| v.left_to_unlock(done)).min().unwrap_or(0)
             }
         }
     }
@@ -195,6 +208,41 @@ impl PrereqTree {
             }
         }
         mem::swap(self, &mut f(self.clone(), module_code).unwrap_or(Empty));
+    }
+
+    pub fn debug<T: std::fmt::Debug>(trees: &Vec<(String, T)>) {
+        // let a: Vec<_> = trees.iter().map(|v| v.0.to_string()).collect();
+        println!("trees: ------------");
+        for (code, tree) in trees {
+            println!("{code}: {tree:?}")
+        }
+        println!("-------------------");
+    }
+
+    /// Sorts the modules into the order which they must be done in. Tie-breaks
+    /// by lexicographical order.
+    pub fn topological_sort(
+        modules: Vec<(String, PrereqTree)>,
+    ) -> Vec<(String, PrereqTree)> {
+        type T = PrereqTree;
+        let mut keyed: Vec<(String, T, T)> =
+            modules.into_iter().map(|v| (v.0, v.1.clone(), v.1)).collect();
+        fn comp(a: &(String, T, T), b: &(String, T, T)) -> std::cmp::Ordering {
+            match a.2.min_to_unlock().cmp(&b.2.min_to_unlock()) {
+                std::cmp::Ordering::Equal => a.0.cmp(&b.0),
+                v => v,
+            }
+        }
+        let end = keyed.len();
+        for i in 0..end {
+            if keyed[i].2.min_to_unlock() > 0 {
+                panic!("This module can't be done: {}", keyed[i].0);
+            }
+            keyed[i..end].sort_by(comp);
+            let code = keyed[i].0.clone();
+            keyed[i..end].iter_mut().for_each(|t| t.2.resolve(&code));
+        }
+        keyed.into_iter().map(|v| (v.0, v.1)).collect()
     }
 }
 

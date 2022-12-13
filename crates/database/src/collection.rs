@@ -89,7 +89,7 @@ impl ModuleCollection {
             if !module.prereqtree_has_one_of(&done) {
                 continue;
             }
-            let to_unlock = module.min_to_unlock(&done);
+            let to_unlock = module.left_to_unlock(&done);
             if to_unlock <= max_distance {
                 if result.contains_key(&to_unlock) {
                     result.entry(to_unlock).and_modify(|v| v.push(module));

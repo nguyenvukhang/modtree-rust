@@ -64,6 +64,7 @@ impl PartialEq for PrereqTree {
         !self.eq(other)
     }
 }
+impl Eq for PrereqTree {}
 
 #[test]
 fn test_prt_eq() {
