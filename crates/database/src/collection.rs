@@ -3,7 +3,7 @@ use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::{InsertManyResult, UpdateResult};
 use std::collections::{HashMap, HashSet};
-use types::{error, Error, Module, Result};
+use types::{Error, Module, Result};
 
 #[derive(Debug)]
 pub struct ModuleCollection(mongodb::Collection<Module>);
@@ -26,9 +26,7 @@ impl ModuleCollection {
     }
 
     pub async fn insert_one(&self, module: &Module) -> Result<UpdateResult> {
-        let mut doc = to_document(module)?;
-        // let mongo-db automatically generate an id
-        doc.remove("_id");
+        let doc = to_document(module)?;
         let query = doc! {
             "module_code": module.code(),
             "acad_year": module.academic_year(),
@@ -117,7 +115,7 @@ impl ModuleCollection {
             "acad_year": acad_year,
         };
         let result = self.0.find_one(filter, None).await?;
-        result.ok_or(error!(ModuleNotFound, module_code.to_string()))
+        result.ok_or(Error::ModuleNotFound(module_code.to_string()))
     }
 
     /// Gets a full path down to modules with no requirements.

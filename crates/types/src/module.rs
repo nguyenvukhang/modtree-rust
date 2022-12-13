@@ -4,43 +4,30 @@ use prereqtree::PrereqTree;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-/// [nusmods] Literally everything about a module.
+/// `modtree` edition of a module
 #[derive(Serialize, Deserialize, Default)]
 pub struct Module {
-    #[serde(default)]
-    _id: ObjectId,
-    #[serde(default, alias = "acadYear")]
     acad_year: String,
-    #[serde(default)]
     preclusion: String,
-    #[serde(default)]
     description: String,
-    #[serde(default)]
     title: String,
-    #[serde(default)]
     department: String,
-    #[serde(default)]
     faculty: String,
-    #[serde(default)]
     prerequisite: String,
-    #[serde(default, alias = "moduleCredit")]
     module_credit: String,
-    #[serde(default, alias = "moduleCode")]
     module_code: String,
-    #[serde(default, alias = "prereqTree")]
-    prereqtree: PrereqTree,
-    #[serde(default, alias = "fulfillRequirements")]
     fulfill_requirements: Vec<String>,
-    #[serde(default)]
+    prereqtree: PrereqTree,
     workload: Workload,
-    // extra stuff
-    #[serde(default)]
-    semesters: Vec<i32>,
+    // extra stuff on top of standard NUSMods API
+    #[serde(skip_serializing_if = "Option::is_none")]
+    semesters: Option<Vec<i32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    _id: Option<ObjectId>,
 }
-
 impl Module {
     pub fn set_semesters(&mut self, sems: &Vec<i32>) -> Result<()> {
-        self.semesters = sems.clone();
+        self.semesters = Some(sems.clone());
         sems.iter()
             .all(|v| 1 <= *v && *v <= 4)
             .then_some(())
@@ -110,5 +97,35 @@ impl fmt::Debug for Module {
             .field("sems", &self.semesters)
             .field("tree", &self.prereqtree)
             .finish()
+    }
+}
+
+impl From<nusmods::Workload> for Workload {
+    fn from(w: nusmods::Workload) -> Self {
+        match w {
+            nusmods::Workload::String(s) => Self::String(s),
+            nusmods::Workload::Numbers(v) => Self::Numbers(v),
+        }
+    }
+}
+
+impl From<nusmods::Module> for Module {
+    fn from(m: nusmods::Module) -> Self {
+        Self {
+            _id: None,
+            semesters: None,
+            acad_year: m.acad_year,
+            preclusion: m.preclusion,
+            description: m.description,
+            title: m.title,
+            department: m.department,
+            faculty: m.faculty,
+            prerequisite: m.prerequisite,
+            module_credit: m.module_credit,
+            module_code: m.module_code,
+            fulfill_requirements: m.fulfill_requirements,
+            workload: Workload::from(m.workload),
+            prereqtree: PrereqTree::from(m.prereqtree),
+        }
     }
 }

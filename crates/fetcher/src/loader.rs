@@ -1,7 +1,7 @@
 use crate::file_parser::FileParser;
 use futures::prelude::*;
 use std::collections::HashMap;
-use types::{Error, Module, NusmodsModuleShort, Result};
+use types::{Error, Module, Result};
 
 /// The spirit of this loader is to always do a two-step fetch:
 ///   1. from local cache
@@ -15,13 +15,13 @@ impl Loader {
     }
 
     /// Loads one module and all of its information.
-    pub async fn load_module(&self, code: &str) -> Result<Module> {
+    pub async fn load_module(&self, code: &str) -> Result<nusmods::Module> {
         Ok(self.0.load(&format!("modules/{code}.json")).await?)
     }
 
     /// Load list of modules from NUSMods. This pulls an extremely minimal list of modules that
     /// only contains module code, title, and semesters offered.
-    pub async fn load_module_list(&self) -> Result<Vec<NusmodsModuleShort>> {
+    pub async fn load_module_list(&self) -> Result<Vec<nusmods::ModuleShort>> {
         Ok(self.0.load("moduleList.json").await?)
     }
 
@@ -59,11 +59,11 @@ impl Loader {
     /// Tries to load modules given a list of module codes.
     async fn try_load_modules(
         &self,
-        codes: &mut HashMap<String, &NusmodsModuleShort>,
+        codes: &mut HashMap<String, &nusmods::ModuleShort>,
     ) -> (Vec<Module>, HashMap<String, Result<Module>>) {
         self.0.clear_source_counts();
         let (total, mut done) = (codes.len(), 0);
-        let interval = 200.max(total / 5);
+        let interval = 200.max(total / 20);
         println!("fetching {} modules.", total);
         let handles = codes
             .iter()
@@ -76,6 +76,7 @@ impl Loader {
             })
             .map(|(code, short)| async move {
                 let module = self.load_module(code).await.and_then(|mut m| {
+                    let mut m = Module::from(m);
                     m.set_semesters(&short.semesters).map(|_| m)
                 });
                 (code.to_owned(), module)

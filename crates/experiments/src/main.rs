@@ -1,71 +1,90 @@
-mod buf_iter;
 mod tsq;
-use std::process::Command;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
-use tsq::TSQ;
 
-struct Data {
-    data: Arc<tsq::TSQ<u8>>,
-    thread: Option<thread::JoinHandle<String>>,
+use serde::de::{self, MapAccess, Visitor};
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum PrereqTree {
+    Only(String),
+    And { and: Vec<PrereqTree> },
+    Or { or: Vec<PrereqTree> },
 }
 
-fn fetch(val: u8) -> u8 {
-    let stdout = Command::new("sh")
-        .arg("-c")
-        .arg(format!("sleep 0.2 && echo '{val}'"))
-        .output()
-        .unwrap()
-        .stdout;
-    let stdout = String::from_utf8_lossy(&stdout).to_string();
-    stdout.trim().parse().unwrap()
+#[derive(Debug)]
+pub struct Person {
+    name: String,
 }
 
-impl Iterator for Data {
-    type Item = u8;
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut v = self.data.pop();
-        while v.is_none() && !self.data.is_done() {
-            v = self.data.pop();
+impl Person {
+    fn new(name: String) -> Self {
+        Self { name }
+    }
+}
+
+impl Serialize for Person {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Person", 1)?;
+        state.serialize_field("name", &self.name)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Person {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Name,
         }
-        match (v, self.data.is_done()) {
-            (None, true) => self.close(),
-            _ => {}
-        };
-        v
-    }
-}
+        struct PersonVisitor;
 
-impl Data {
-    fn new() -> Self {
-        Self { data: Arc::new(TSQ::new()), thread: None }
-    }
-
-    fn gather(&mut self) {
-        let data = Arc::clone(&self.data);
-        let t = thread::spawn(move || {
-            for i in 0..20 {
-                data.push(fetch(i));
+        impl<'de> Visitor<'de> for PersonVisitor {
+            type Value = Person;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("struct Person")
             }
-            data.done();
-            "hello!".to_string()
-        });
-        self.thread = Some(t);
-    }
 
-    fn close(&mut self) {
-        std::mem::take(&mut self.thread).map(|v| v.join());
+            fn visit_map<V>(self, mut map: V) -> Result<Person, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut name = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Name => {
+                            if name.is_some() {
+                                return Err(de::Error::duplicate_field("name"));
+                            }
+                            name = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let name =
+                    name.ok_or_else(|| de::Error::missing_field("name"))?;
+                Ok(Person::new(name))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["name"];
+        deserializer.deserialize_struct("Person", FIELDS, PersonVisitor)
     }
 }
 
 fn main() {
-    println!("Data::main()");
-    let mut src = Data::new();
-    src.gather();
-
-    for i in src {
-        println!("{i}")
-    }
-    // src.close();
+    println!("HELLO!");
+    let data = r#"
+        {
+            "name": "John Doe"
+        }"#;
+    let john: Person = serde_json::from_str(data).unwrap();
+    println!("{john:?}");
 }

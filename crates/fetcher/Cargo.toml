@@ -11,8 +11,9 @@ tokio = { version = "1.23.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 futures = "0.3"
-types = { version = "0.0.1", path = "../types" }
 dotenv = "0.15.0"
+types = { version = "0.0.1", path = "../types" }
+nusmods = { version = "0.0.1", path = "../nusmods" }
 
 [lib]
 doctest = false

@@ -20,6 +20,7 @@ members = [
   "crates/fetcher",
   "crates/database",
   "crates/types",
-  "crates/prereqtree"
+  "crates/prereqtree",
+  "crates/nusmods"
 ]
 exclude = ["crates/experiments"]

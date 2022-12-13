@@ -12,6 +12,7 @@ use std::future::Future;
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PrereqTree {
+    Empty,
     Only(String),
     And { and: Vec<PrereqTree> },
     Or { or: Vec<PrereqTree> },
@@ -23,7 +24,8 @@ impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
     pub fn contains_code(&self, module_code: &str) -> bool {
         match self {
-            Only(only) => !only.is_empty() && only.eq(module_code),
+            Empty => false,
+            Only(only) => only.eq(module_code),
             And { and } => and.iter().any(|v| v.contains_code(module_code)),
             Or { or } => or.iter().any(|v| v.contains_code(module_code)),
         }
@@ -40,7 +42,8 @@ impl PrereqTree {
     /// Counts the minimum number of modules required to satisfy the tree.
     pub fn min_to_unlock(&self, done: &HashSet<String>) -> u8 {
         match self {
-            Only(only) => match only.is_empty() || done.contains(only) {
+            Empty => 0,
+            Only(only) => match done.contains(only) {
                 true => 0,
                 false => 1,
             },
@@ -54,7 +57,8 @@ impl PrereqTree {
     /// Checks if a set of modules done satisfies the prereqtree.
     pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
-            Only(only) => only.is_empty() || done.contains(only),
+            Empty => true,
+            Only(only) => done.contains(only),
             And { and } => {
                 and.iter().fold(true, |a, p| a && p.satisfied_by(done))
             }
@@ -67,7 +71,7 @@ impl PrereqTree {
     /// Returns one possible path that is shortest.
     pub fn min_path(&self) -> Vec<String> {
         match self {
-            Only(v) if v.is_empty() => vec![],
+            Empty => vec![],
             Only(only) => vec![only.to_string()],
             And { and } => {
                 let mut set = HashSet::new();
@@ -98,7 +102,7 @@ impl PrereqTree {
     /// Returns every module found in the PrereqTree in a list.
     pub fn flatten(&self) -> Vec<String> {
         match self {
-            Only(only) if only.is_empty() => vec![],
+            Empty => vec![],
             Only(only) => vec![only.to_string()],
             Or { or: t } | And { and: t } => {
                 let mut set = HashSet::new();
@@ -111,7 +115,7 @@ impl PrereqTree {
     /// Returns every valid path taken to satisfy this prereqtree.
     pub fn all_paths(&self) -> Vec<Vec<String>> {
         match self {
-            Only(only) if only.is_empty() => vec![],
+            Empty => vec![],
             Only(only) => vec![vec![only.to_string()]],
             Or { or: t } => {
                 // several possible journeys.
@@ -150,6 +154,13 @@ impl PrereqTree {
         }
         Vec::from_iter(result)
     }
+
+    /// Resolves a module code in th prereqtree. This is not just a function to
+    /// remove the module. This function treats the module as done and updates
+    /// the tree to reflect that. So if module A needs B and (C or D), then
+    /// calling A.resolve(C) will reduce A's prereqtree to just "needs B", since
+    /// the rest have been satisfied.
+    pub fn resolve(&mut self, module_code: &str) {}
 }
 
 #[cfg(test)]

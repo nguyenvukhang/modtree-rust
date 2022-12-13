@@ -3,9 +3,26 @@ use crate::PrereqTree;
 use serde_json::to_string_pretty;
 use std::fmt;
 
+impl From<nusmods::PrereqTree> for PrereqTree {
+    fn from(t: nusmods::PrereqTree) -> Self {
+        use nusmods::PrereqTree as N;
+        match t {
+            N::Or { or } => {
+                Self::Or { or: or.into_iter().map(Self::from).collect() }
+            }
+            N::And { and } => {
+                Self::And { and: and.into_iter().map(Self::from).collect() }
+            }
+            N::Only(m) if m.is_empty() => Self::Empty,
+            N::Only(m) => Self::Only(m),
+        }
+    }
+}
+
 impl fmt::Debug for PrereqTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Empty => write!(f, ""),
             Self::Only(v) => write!(f, "{v}"),
             Self::Or { or: t } => write!(f, "OR {t:?}"),
             Self::And { and: t } => write!(f, "AND {t:?}"),
