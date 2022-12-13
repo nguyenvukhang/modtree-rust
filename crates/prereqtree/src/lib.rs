@@ -8,6 +8,7 @@ use loader::Loader;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::future::Future;
+use std::mem;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
@@ -65,6 +66,20 @@ impl PrereqTree {
             Or { or } => {
                 or.iter().fold(or.is_empty(), |a, p| a || p.satisfied_by(done))
             }
+        }
+    }
+
+    /// Checks if a set of modules done satisfies the prereqtree.
+    pub fn satisfied_by_one(&self, done: &str) -> bool {
+        match self {
+            Empty => true,
+            Only(only) => done.eq(only),
+            And { and } => {
+                and.iter().fold(true, |a, p| a && p.satisfied_by_one(done))
+            }
+            Or { or } => or
+                .iter()
+                .fold(or.is_empty(), |a, p| a || p.satisfied_by_one(done)),
         }
     }
 
@@ -160,7 +175,27 @@ impl PrereqTree {
     /// the tree to reflect that. So if module A needs B and (C or D), then
     /// calling A.resolve(C) will reduce A's prereqtree to just "needs B", since
     /// the rest have been satisfied.
-    pub fn resolve(&mut self, module_code: &str) {}
+    pub fn resolve(&mut self, module_code: &str) {
+        fn filter(v: Vec<PrereqTree>, code: &str) -> Vec<PrereqTree> {
+            v.into_iter().filter_map(|t| f(t, code)).collect()
+        }
+        fn f(t: PrereqTree, code: &str) -> Option<PrereqTree> {
+            match t {
+                Empty => None,
+                Only(v) if v.eq(code) => None,
+                Only(v) => Some(Only(v)),
+                And { and } => match filter(and, code) {
+                    and if and.is_empty() => None,
+                    and => Some(And { and }),
+                },
+                Or { or } => match (or.len(), filter(or, code)) {
+                    (len, or) if or.len() == len => Some(Or { or }),
+                    _ => None,
+                },
+            }
+        }
+        mem::swap(self, &mut f(self.clone(), module_code).unwrap_or(Empty));
+    }
 }
 
 #[cfg(test)]

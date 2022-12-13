@@ -38,35 +38,37 @@ fn satisfied_by_test() {
 
 #[test]
 fn min_to_unlock_test() {
-    fn test(tree: &PrereqTree, done: HashSet<String>, expect: u8) {
-        assert_eq!(tree.min_to_unlock(&done), expect);
+    macro_rules! test {
+        ($tree:expr, $done:expr, $expect:expr) => {
+            assert_eq!($tree.min_to_unlock(&$done), $expect);
+        };
     }
     // empty tree
-    test(&t!(), t!(none), 0);
-    test(&t!(A), t!(done, A), 0);
-    test(&t!(A), t!(none), 1);
+    test!(&t!(), t!(none), 0);
+    test!(&t!(A), t!(done, A), 0);
+    test!(&t!(A), t!(none), 1);
     // tests for "and"
     let tree = &t!(and, t!(A), t!(B));
-    test(tree, t!(none), 2);
-    test(tree, t!(done, A), 1);
-    test(tree, t!(done, A, B), 0);
+    test!(tree, t!(none), 2);
+    test!(tree, t!(done, A), 1);
+    test!(tree, t!(done, A, B), 0);
     // tests for "or"
     let tree = &t!(or, t!(A), t!(B));
-    test(tree, t!(none), 1);
-    test(tree, t!(done, A), 0);
-    test(tree, t!(done, A, B), 0);
+    test!(tree, t!(none), 1);
+    test!(tree, t!(done, A), 0);
+    test!(tree, t!(done, A, B), 0);
     // tests for nested structures "and(or())"
     let tree = &t!(and, t!(or, t!(A), t!(B)), t!(C));
-    test(tree, t!(none), 2);
-    test(tree, t!(done, A), 1);
-    test(tree, t!(done, C), 1);
-    test(tree, t!(done, A, C), 0);
+    test!(tree, t!(none), 2);
+    test!(tree, t!(done, A), 1);
+    test!(tree, t!(done, C), 1);
+    test!(tree, t!(done, A, C), 0);
     // tests for nested structures "or(and())"
     let tree = &t!(or, t!(and, t!(A), t!(B)), t!(C));
-    test(tree, t!(none), 1);
-    test(tree, t!(done, A), 1);
-    test(tree, t!(done, C), 0);
-    test(tree, t!(done, A, C), 0);
+    test!(tree, t!(none), 1);
+    test!(tree, t!(done, A), 1);
+    test!(tree, t!(done, C), 0);
+    test!(tree, t!(done, A, C), 0);
 }
 
 #[test]
@@ -179,7 +181,7 @@ fn min_path_filtered_test() {
 }
 
 #[test]
-fn all_paths() {
+fn all_paths_test() {
     let tree = t!(
         and,
         t!(or, t!(A), t!(B)),
@@ -208,4 +210,54 @@ fn all_paths() {
         ],
         |a, b| vec_eq(a, b, |a, b| a.eq(b))
     ));
+}
+
+#[test]
+fn resolve_test() {
+    macro_rules! resolve {
+        ($tree:expr, $code:expr, $expected:expr) => {
+            let mut received = $tree.clone();
+            received.resolve($code);
+            let ok = received == $expected;
+            if !ok {
+                println!("received->{:?}", received);
+                println!("expected->{:?}", $expected);
+            }
+            assert!(ok);
+        };
+        ($tree:expr, $filter:expr) => {
+            assert_eq!($tree.min_path_filtered(&s_vec($filter)), None);
+        };
+    }
+    let tree = t!(and, t!(or, t!(A), t!(B)), t!(and, t!(C), t!(D), t!(E)));
+    resolve!(tree, "A", t!(and, t!(and, t!(C), t!(D), t!(E))));
+    resolve!(tree, "C", t!(and, t!(or, t!(A), t!(B)), t!(and, t!(D), t!(E))));
+    let tree = t!(
+        and,
+        t!(or, t!(A), t!(B)),
+        t!(or, t!(C), t!(D)),
+        t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y))),
+        t!(or, t!(G), t!(H))
+    );
+    resolve!(
+        tree,
+        "F",
+        t!(
+            and,
+            t!(or, t!(A), t!(B)),
+            t!(or, t!(C), t!(D)),
+            t!(or, t!(G), t!(H))
+        )
+    );
+    resolve!(
+        tree,
+        "X",
+        t!(
+            and,
+            t!(or, t!(A), t!(B)),
+            t!(or, t!(C), t!(D)),
+            t!(or, t!(E), t!(F), t!(and, t!(Y))),
+            t!(or, t!(G), t!(H))
+        )
+    );
 }
