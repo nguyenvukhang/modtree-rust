@@ -1,5 +1,5 @@
 mod loader;
-mod core;
+mod file_parser;
 mod util;
 use loader::Loader;
 use types::Result;

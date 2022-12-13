@@ -90,10 +90,8 @@ pub fn restore(db: &str) -> Result<()> {
 async fn build(db: &Database) -> Result<()> {
     let mods = db.modules();
     mods.drop().await?;
-    mods.import_academic_year("2021-2022").await?;
-    mods.import_academic_year("2022-2023").await?;
-    mods.import_semester_data("2021-2022").await?;
-    mods.import_semester_data("2022-2023").await?;
+    mods.import_academic_year("2021-2022", None).await?;
+    mods.import_academic_year("2022-2023", None).await?;
     Ok(())
 }
 

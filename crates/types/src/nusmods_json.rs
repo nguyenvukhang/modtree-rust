@@ -47,3 +47,20 @@ impl NusmodsModuleShort {
         self.module_code.to_string()
     }
 }
+
+impl PartialEq for NusmodsModuleShort {
+    fn eq(&self, rhs: &NusmodsModuleShort) -> bool {
+        self.module_code.eq(&rhs.module_code)
+    }
+    fn ne(&self, rhs: &NusmodsModuleShort) -> bool {
+        !self.eq(rhs)
+    }
+}
+impl Eq for NusmodsModuleShort {}
+
+use std::hash::{Hash, Hasher};
+impl Hash for NusmodsModuleShort {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.module_code.hash(state);
+    }
+}

@@ -1,4 +1,4 @@
 mod loader;
 mod util;
-mod core;
+mod file_parser;
 pub use loader::Loader;

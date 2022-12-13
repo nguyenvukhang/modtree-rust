@@ -1,4 +1,4 @@
-use crate::Workload;
+use crate::{Error, Result, Workload};
 use bson::oid::ObjectId;
 use prereqtree::PrereqTree;
 use serde::{Deserialize, Serialize};
@@ -34,12 +34,18 @@ pub struct Module {
     #[serde(default)]
     workload: Workload,
     // extra stuff
-    // TODO: toggle back the pub
     #[serde(default)]
-    pub semesters: Vec<i32>,
+    semesters: Vec<i32>,
 }
 
 impl Module {
+    pub fn set_semesters(&mut self, sems: &Vec<i32>) -> Result<()> {
+        self.semesters = sems.clone();
+        sems.iter()
+            .all(|v| 1 <= *v && *v <= 4)
+            .then_some(())
+            .ok_or(Error::InvalidSemesters(sems.clone()))
+    }
     pub fn code(&self) -> String {
         self.module_code.to_string()
     }

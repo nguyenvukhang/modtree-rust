@@ -1,9 +1,7 @@
-#![allow(unused)]
-
 use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
-use mongodb::results::UpdateResult;
+use mongodb::results::{InsertManyResult, UpdateResult};
 use std::collections::{HashMap, HashSet};
 use types::{error, Error, Module, Result};
 
@@ -18,70 +16,13 @@ impl ModuleCollection {
     pub async fn import_academic_year(
         &self,
         academic_year: &str,
+        limit: Option<usize>,
     ) -> Result<()> {
-        use fetcher::Loader;
-        let loader = Loader::new(academic_year)?;
-        println!("Loading modules from JSON...");
-        let modules = loader.load_all_modules(None).await?;
-        println!("Done loading all modules from JSON");
-        println!("Inserting modules to mongo-db...");
-        self.insert_many(&modules).await;
-        println!("Done.");
-        Ok(())
-    }
-
-    pub async fn import_partial(
-        &self,
-        academic_year: &str,
-        count: usize,
-    ) -> Result<()> {
-        use fetcher::Loader;
-        let loader = Loader::new(academic_year)?;
-        println!("Loading modules from JSON...");
-        let modules = loader.load_all_modules(Some(count)).await?;
-        println!("Done loading all modules from JSON");
-        println!("Inserting modules to mongo-db...");
-        self.insert_many(&modules).await;
-        println!("Done.");
-        Ok(())
-    }
-
-    pub async fn import_one(
-        &self,
-        module_code: &str,
-        academic_year: &str,
-    ) -> Result<()> {
-        use fetcher::Loader;
-        let loader = Loader::new(academic_year)?;
-        println!("Loading {module_code} from JSON...");
-        let module = loader.load_module(module_code).await?;
-        println!("Done loading {module_code} from JSON");
-        println!("Inserting modules to mongo-db...");
-        self.insert_one(&module).await?;
-        println!("Done.");
-        Ok(())
-    }
-
-    /// Imports the availability of each module at each semester.
-    /// (Some modules are only available in sem 1)
-    pub async fn import_semester_data(
-        &self,
-        academic_year: &str,
-    ) -> Result<()> {
-        use fetcher::Loader;
-        let loader = Loader::new(academic_year)?;
-        let academic_year = &academic_year.replace("-", "/");
-        let module_list = loader.load_module_list().await?;
-        eprintln!("Loading module list from JSON...");
-        let handles = module_list.iter().map(|module| async move {
-            let query = doc! { "module_code": module.code(), "acad_year": academic_year };
-            let doc = doc! { "$set": { "semesters": &module.semesters } };
-            self.0.update_one(query.clone(), doc, None).await
-        });
-        eprintln!("Updating modules in mongo-db...");
-        futures::future::join_all(handles).await;
-        eprintln!("Done.");
-        Ok(())
+        let loader = fetcher::Loader::new(academic_year)?;
+        let modules = loader.load_all_modules(limit).await?;
+        let delete_query = doc! { "academic_year": academic_year };
+        self.0.delete_many(delete_query, None).await?;
+        self.insert_many_unchecked(&modules).await.map(|_| ())
     }
 
     pub async fn insert_one(&self, module: &Module) -> Result<UpdateResult> {
@@ -93,11 +34,11 @@ impl ModuleCollection {
             "acad_year": module.academic_year(),
         };
         let opts = UpdateOptions::builder().upsert(true).build();
-        let result =
-            self.0.update_one(query, doc! { "$set": doc }, opts).await?;
-        Ok(result)
+        Ok(self.0.update_one(query, doc! { "$set": doc }, opts).await?)
     }
 
+    /// Inserts modules which do not already exist in database. A module is
+    /// uniquely identified by its module code and academic year.
     pub async fn insert_many(
         &self,
         modules: &Vec<Module>,
@@ -106,6 +47,15 @@ impl ModuleCollection {
             .iter()
             .map(|module| async move { self.insert_one(module).await });
         futures::future::join_all(handles).await
+    }
+
+    /// Inserts many modules without checking for duplicate
+    /// module code/academic year
+    pub async fn insert_many_unchecked(
+        &self,
+        modules: &Vec<Module>,
+    ) -> Result<InsertManyResult> {
+        Ok(self.0.insert_many(modules, None).await?)
     }
 
     pub async fn drop(&self) -> Result<()> {

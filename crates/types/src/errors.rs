@@ -53,6 +53,9 @@ pub enum Error {
 
     #[error("Tried to delete a core database: {0}")]
     MongoDbBadDrop(String),
+
+    #[error("Invalid semester array")]
+    InvalidSemesters(Vec<i32>),
 }
 
 impl From<reqwest::Error> for Error {

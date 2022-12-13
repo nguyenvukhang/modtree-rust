@@ -1,8 +1,6 @@
-use crate::core::FileParser;
+use crate::file_parser::FileParser;
 use futures::prelude::*;
-use std::collections::HashSet;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::collections::HashMap;
 use types::{Error, Module, NusmodsModuleShort, Result};
 
 /// The spirit of this loader is to always do a two-step fetch:
@@ -32,18 +30,28 @@ impl Loader {
         &self,
         limit: Option<usize>,
     ) -> Result<Vec<Module>> {
-        let mut l = self.load_module_list().await?;
-        l.truncate(limit.unwrap_or(l.len()));
-        let mut task = HashSet::from_iter(l.into_iter().map(|m| m.code()));
+        let shorts = self.load_module_list().await?;
+        let limit = limit.unwrap_or(shorts.len());
+        let mut task: HashMap<String, _> = HashMap::from_iter(
+            shorts.iter().take(limit).map(|v| (v.code(), v)),
+        );
         let mut result = vec![];
         let mut attempts = 0;
+        let mut errors: HashMap<String, Result<Module>> = HashMap::new();
         loop {
-            result.extend(self.try_load_modules(&mut task).await);
-            if attempts > 5 || task.is_empty() {
+            let (ok, bad) = self.try_load_modules(&mut task).await;
+            result.extend(ok);
+            bad.into_iter().for_each(|(code, err)| {
+                errors.insert(code, err);
+            });
+            if attempts >= 5 || task.is_empty() {
                 break;
             }
             attempts += 1;
             eprintln!("[fetch] retry: {attempts}");
+        }
+        if !errors.is_empty() {
+            panic!("\nLoad failed after 5 attempts:\n\n{errors:?}\n\n")
         }
         task.is_empty().then_some(result).ok_or(Error::UnableToLoadAllModules)
     }
@@ -51,31 +59,40 @@ impl Loader {
     /// Tries to load modules given a list of module codes.
     async fn try_load_modules(
         &self,
-        codes: &mut HashSet<String>,
-    ) -> Vec<Module> {
+        codes: &mut HashMap<String, &NusmodsModuleShort>,
+    ) -> (Vec<Module>, HashMap<String, Result<Module>>) {
         self.0.clear_source_counts();
-        let (total, done) = (codes.len(), Arc::new(AtomicUsize::new(0)));
+        let (total, mut done) = (codes.len(), 0);
         let interval = 200.max(total / 5);
         println!("fetching {} modules.", total);
-        let handles = codes.iter().map(|code| (code, Arc::clone(&done))).map(
-            |(code, done)| async move {
-                let res = self.load_module(code).await;
-                match done.fetch_add(1, Ordering::SeqCst) + 1 {
+        let handles = codes
+            .iter()
+            .inspect(|_| {
+                done += 1;
+                match done {
                     x if x % interval != 0 && x != total => (),
                     x => println!("done: {x} {:?}", self.0.source_counts()),
                 }
-                res
-            },
-        );
-        futures::stream::iter(handles)
-            .buffer_unordered(40)
-            .collect::<Vec<Result<Module>>>()
-            .await
-            .into_iter()
-            .filter_map(|v| v.ok())
-            .inspect(|v| {
-                codes.remove(&v.code());
             })
-            .collect()
+            .map(|(code, short)| async move {
+                let module = self.load_module(code).await.and_then(|mut m| {
+                    m.set_semesters(&short.semesters).map(|_| m)
+                });
+                (code.to_owned(), module)
+            });
+        let results = futures::stream::iter(handles)
+            .buffer_unordered(40)
+            .collect::<Vec<_>>()
+            .await;
+        let (ok, bad): (HashMap<_, _>, HashMap<_, _>) =
+            results.into_iter().partition(|v| v.1.is_ok());
+        let ok = ok
+            .into_iter()
+            .map(|(code, result)| {
+                codes.remove(&code);
+                result.unwrap()
+            })
+            .collect();
+        (ok, bad)
     }
 }

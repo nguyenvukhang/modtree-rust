@@ -12,9 +12,9 @@ async fn test() -> Result<()> {
     let mods = db.modules();
     let all = mods.list_all().await?;
     for module in all {
-        if module.semesters.len() == 3 {
-            println!("{module:?}");
-        }
+        // if module.semesters.len() == 3 {
+        //     println!("{module:?}");
+        // }
     }
     Ok(())
 }
