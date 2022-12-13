@@ -76,7 +76,6 @@ impl ModuleCollection {
         let handles = module_list.iter().map(|module| async move {
             let query = doc! { "module_code": module.code(), "acad_year": academic_year };
             let doc = doc! { "$set": { "semesters": &module.semesters } };
-            // println!("[{}]->{:?}", module.code(), module.semesters);
             self.0.update_one(query.clone(), doc, None).await
         });
         eprintln!("Updating modules in mongo-db...");
