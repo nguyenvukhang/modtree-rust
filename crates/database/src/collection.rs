@@ -116,7 +116,10 @@ impl ModuleCollection {
             "acad_year": acad_year,
         };
         let result = self.0.find_one(filter, None).await?;
-        result.ok_or(Error::ModuleNotFound(module_code.to_string()))
+        result.ok_or(Error::ModuleNotFound(
+            module_code.to_string(),
+            acad_year.to_string(),
+        ))
     }
 
     pub async fn flatten_requirements(

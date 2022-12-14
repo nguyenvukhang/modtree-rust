@@ -14,6 +14,10 @@ impl ModuleList {
         Self(HashSet::from_iter(vec![m]))
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     /// Adds a new module to the list. Returns true on success.
     pub fn insert(&mut self, m: Module) -> bool {
         self.0.insert(m)

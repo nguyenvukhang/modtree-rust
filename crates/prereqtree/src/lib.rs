@@ -6,6 +6,7 @@ mod util;
 
 use loader::Loader;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::mem;
@@ -19,18 +20,18 @@ pub enum PrereqTree {
 }
 use PrereqTree::*;
 
+/// Public-facing API
 impl PrereqTree {
+    /// Creates an empty `PrereqTree`.
     pub fn empty() -> Self {
         PrereqTree::Only("".to_string())
     }
 
+    /// Creates a `PrereqTree` with one module.
     pub fn only(code: &str) -> Self {
         PrereqTree::Only(code.to_string())
     }
-}
 
-/// Public-facing API
-impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
     pub fn contains_code(&self, module_code: &str) -> bool {
         match self {
@@ -170,8 +171,6 @@ impl PrereqTree {
         let mut remaining: Vec<String> = self.flatten();
         let mut result: HashSet<String> = HashSet::new();
         let mut loader = Loader::new(loader);
-        use std::cmp::Ordering;
-        // while let Some(code) = remaining.pop() {
         while !remaining.is_empty() {
             remaining.sort_by(|a, b| match (loader.get(a), loader.get(b)) {
                 (Some(_), _) => Ordering::Greater,

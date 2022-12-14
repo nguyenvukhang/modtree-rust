@@ -21,8 +21,8 @@ pub enum Error {
     #[error("Not found")]
     NotFound,
 
-    #[error("Module not found: {0}")]
-    ModuleNotFound(String),
+    #[error("Module not found: {0}, AY{1}")]
+    ModuleNotFound(String, String),
 
     #[error("Semesters not found: {0}")]
     ModuleSemestersNotFound(String),
