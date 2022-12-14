@@ -20,18 +20,21 @@ pub struct Module {
     prereqtree: PrereqTree,
     workload: Workload,
     // extra stuff on top of standard NUSMods API
-    #[serde(skip_serializing_if = "Option::is_none")]
-    semesters: Option<Vec<i32>>,
+    semesters: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     _id: Option<ObjectId>,
 }
+
 impl Module {
     pub fn set_semesters(&mut self, sems: &Vec<i32>) -> Result<()> {
-        self.semesters = Some(sems.clone());
+        self.semesters = sems.clone();
         sems.iter()
             .all(|v| 1 <= *v && *v <= 4)
             .then_some(())
             .ok_or(Error::InvalidSemesters(sems.clone()))
+    }
+    pub fn is_offered_in_sem(&self, sem: i32) -> bool {
+        self.semesters.contains(&sem)
     }
     pub fn code(&self) -> String {
         self.module_code.to_string()
@@ -113,7 +116,7 @@ impl From<nusmods::Module> for Module {
     fn from(m: nusmods::Module) -> Self {
         Self {
             _id: None,
-            semesters: None,
+            semesters: vec![],
             acad_year: m.acad_year,
             preclusion: m.preclusion,
             description: m.description,

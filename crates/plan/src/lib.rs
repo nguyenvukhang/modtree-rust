@@ -1,33 +1,16 @@
-use std::collections::{HashMap, HashSet};
-use types::Module;
+mod debug;
+mod plan;
+mod structs;
 
-struct Semester(HashSet<Module>);
-impl Semester {
-    pub fn insert(&mut self, m: Module) -> bool {
-        self.0.insert(m)
-    }
-    pub fn remove(&mut self, code: String) -> bool {
-        // calculate ay using matric_year and year number
-        // self.0.insert(m)
-        false
-    }
-}
-struct Plan {
-    matric_year: u64,
-    semesters: HashMap<[u8; 2], Semester>,
-}
+use database::client::Client;
+use plan::Plan;
 
-impl Plan {
-    fn get_semester(&self, year: u8, sem: u8) -> Option<&Semester> {
-        self.semesters.get(&[year, sem])
-    }
-    fn add_module(&mut self, year: u8, sem: u8, module: Module) {
-        let sem = self.semesters.get_mut(&[year, sem]).unwrap();
-        sem.insert(module);
-    }
-}
-
-pub fn main() {
+pub async fn main() {
     println!("--- PLAN::main() ---");
-    println!("GOT HERE");
+    let (_, db) = Client::debug_init().await.unwrap();
+    let c = db.modules();
+    let module = c.find_one("CS1010", "2022/2023").await.unwrap();
+    let mut plan = Plan::new(2021, 1).unwrap();
+    plan.add(1, 1, module).unwrap();
+    println!("{plan:?}")
 }

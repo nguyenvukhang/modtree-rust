@@ -24,6 +24,9 @@ pub enum Error {
     #[error("Module not found: {0}")]
     ModuleNotFound(String),
 
+    #[error("Semesters not found: {0}")]
+    ModuleSemestersNotFound(String),
+
     #[error("Pre-requisites not satisfied for module: {0} -> {1}")]
     PrerequisitesNotSatisfied(String, String),
 
@@ -56,6 +59,12 @@ pub enum Error {
 
     #[error("Invalid semester array")]
     InvalidSemesters(Vec<i32>),
+
+    #[error("Invalid semester. Use a number from 1-4")]
+    InvalidSemester,
+
+    #[error("Module `{0}` not offered in this semester: `{1}`")]
+    ModuleNotOfferedInSem(String, i32),
 }
 
 impl From<reqwest::Error> for Error {
