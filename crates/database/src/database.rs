@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::collection::ModuleCollection;
 use types::{Module, Result};
 

@@ -830,7 +830,10 @@ dependencies = [
 name = "modtree"
 version = "0.0.1"
 dependencies = [
+ "database",
+ "plan",
  "postgres 0.0.1",
+ "tokio",
 ]
 
 [[package]]
@@ -1067,6 +1070,14 @@ name = "pkg-config"
 version = "0.3.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
+
+[[package]]
+name = "plan"
+version = "0.0.1"
+dependencies = [
+ "database",
+ "types",
+]
 
 [[package]]
 name = "postgres"

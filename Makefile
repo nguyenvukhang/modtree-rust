@@ -5,6 +5,8 @@ test:
 	cargo test --workspace
 
 build:
-	@sh scripts/debug.sh debug database
+	# @sh scripts/debug.sh debug database
+	@cargo build --workspace
+	@./target/debug/modtree
 
 .PHONY: test build

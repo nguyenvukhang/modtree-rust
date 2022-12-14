@@ -1,12 +1,13 @@
 [package]
-name = "nusmods"
+name = "plan"
 version = "0.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+database = { version = "0.0.1", path = "../database" }
+types = { version = "0.0.1", path = "../types" }
 
 [lib]
 doctest = false

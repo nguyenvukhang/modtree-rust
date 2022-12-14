@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::database::Database;
 use mongodb::options::{ClientOptions, Credential, ServerAddress};
 use std::env;

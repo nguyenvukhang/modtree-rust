@@ -2,6 +2,7 @@ use futures::stream::StreamExt;
 use mongodb::bson::{doc, to_document};
 use mongodb::options::UpdateOptions;
 use mongodb::results::{InsertManyResult, UpdateResult};
+use prereqtree::PrereqTree;
 use std::collections::{HashMap, HashSet};
 use types::{Error, Module, Result};
 
@@ -118,6 +119,37 @@ impl ModuleCollection {
         result.ok_or(Error::ModuleNotFound(module_code.to_string()))
     }
 
+    pub async fn flatten_requirements(
+        &self,
+        module_code: &str,
+        acad_year: &str,
+    ) -> Result<Vec<String>> {
+        let root_module = self.find_one(module_code, acad_year).await?;
+        let mut tree = root_module.prereqtree();
+        let loader = |codes: Vec<String>| async move {
+            let doc = doc! {
+                "acad_year": acad_year,
+                "module_code": { "$in": &codes }
+            };
+            let mut remain: HashSet<String> = HashSet::from_iter(codes);
+            let mut cursor = match self.0.find(doc, None).await {
+                Ok(v) => v,
+                Err(_) => return None,
+            };
+            let mut res = vec![];
+            while let Some(module) = cursor.next().await {
+                if let Ok(m) = module {
+                    let code = m.code();
+                    remain.remove(&code);
+                    res.push((code, m.prereqtree()));
+                }
+            }
+            res.extend(remain.into_iter().map(|c| (c, PrereqTree::empty())));
+            Some(HashMap::from_iter(res))
+        };
+        Ok(tree.global_flatten(loader).await)
+    }
+
     /// Gets a full path down to modules with no requirements.
     pub async fn min_path(
         &self,
@@ -130,10 +162,6 @@ impl ModuleCollection {
         };
         let root_module = self.0.find_one(filter, None).await?.unwrap();
         let mut tree = root_module.prereqtree();
-        let loader = |code: String| async move {
-            let a = self.find_one(&code, acad_year).await;
-            a.ok().map(|m| m.prereqtree())
-        };
         println!("tree->{tree:?}");
         tree.resolve("MA1512");
         tree.resolve("MA1511");

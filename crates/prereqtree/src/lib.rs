@@ -6,7 +6,7 @@ mod util;
 
 use loader::Loader;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::future::Future;
 use std::mem;
 
@@ -19,6 +19,16 @@ pub enum PrereqTree {
     Or { or: Vec<PrereqTree> },
 }
 use PrereqTree::*;
+
+impl PrereqTree {
+    pub fn empty() -> Self {
+        PrereqTree::Empty
+    }
+
+    pub fn only(code: &str) -> Self {
+        PrereqTree::Only(code.to_string())
+    }
+}
 
 /// Public-facing API
 impl PrereqTree {
@@ -159,24 +169,40 @@ impl PrereqTree {
     /// Flattens the tree until leaf nodes are reached.
     pub async fn global_flatten<F, R>(&mut self, loader: F) -> Vec<String>
     where
-        F: Fn(String) -> R,
-        R: Future<Output = Option<Self>>,
+        F: Fn(Vec<String>) -> R,
+        R: Future<Output = Option<HashMap<String, Self>>>,
     {
         let mut remaining: Vec<String> = self.flatten();
         let mut result: HashSet<String> = HashSet::new();
         let mut loader = Loader::new(loader);
-        while let Some(code) = remaining.pop() {
-            match loader.get(&code).await {
-                Some(And { and: t } | Or { or: t }) => remaining.extend(
+        use std::cmp::Ordering;
+        // while let Some(code) = remaining.pop() {
+        while !remaining.is_empty() {
+            remaining.sort_by(|a, b| match (loader.get(a), loader.get(b)) {
+                (Some(_), _) => Ordering::Greater,
+                (_, Some(_)) => Ordering::Less,
+                _ => Ordering::Equal,
+            });
+            let (tree, code) = match loader.get(remaining.last().unwrap()) {
+                None => {
+                    loader.load_trees(&remaining).await;
+                    let code = remaining.pop().unwrap();
+                    (loader.get(&code).unwrap(), code)
+                }
+                Some(v) => (v, remaining.pop().unwrap()),
+            };
+
+            match tree {
+                And { and: t } | Or { or: t } => remaining.extend(
                     t.iter()
                         .flat_map(|v| v.flatten())
                         .filter(|v| !result.contains(v)),
                 ),
-                Some(Only(only)) if !only.is_empty() => {
+                Only(only) => {
                     result.insert(only);
                 }
                 _ => {
-                    result.insert(code);
+                    result.insert(code.to_string());
                 }
             }
         }

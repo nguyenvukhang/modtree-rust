@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 postgres = { version = "0.0.1", path = "crates/postgres" }
+plan = { version = "0.0.1", path = "crates/plan" }
+database = { version = "0.0.1", path = "crates/database" }
+tokio = { version = "1.23.0", features = ["full"] }
 
 [[bin]]
 path = "crates/core/main.rs"
@@ -21,6 +24,7 @@ members = [
   "crates/database",
   "crates/types",
   "crates/prereqtree",
-  "crates/nusmods"
+  "crates/nusmods",
+  "crates/plan"
 ]
 exclude = ["crates/experiments"]
