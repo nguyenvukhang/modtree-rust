@@ -126,27 +126,29 @@ impl ModuleCollection {
     ) -> Result<Vec<String>> {
         let root_module = self.find_one(module_code, acad_year).await?;
         let mut tree = root_module.prereqtree();
-        let loader = |codes: Vec<String>| async move {
-            let doc = doc! {
-                "acad_year": acad_year,
-                "module_code": { "$in": &codes }
-            };
-            let mut remain: HashSet<String> = HashSet::from_iter(codes);
-            let mut cursor = match self.0.find(doc, None).await {
-                Ok(v) => v,
-                Err(_) => return None,
-            };
-            let mut res = vec![];
-            while let Some(module) = cursor.next().await {
-                if let Ok(m) = module {
-                    let code = m.code();
-                    remain.remove(&code);
-                    res.push((code, m.prereqtree()));
+        let loader =
+            |codes: Vec<String>| async move {
+                let doc = doc! {
+                    "acad_year": acad_year,
+                    "module_code": { "$in": &codes }
+                };
+                let mut remain: HashSet<String> = HashSet::from_iter(codes);
+                let mut cursor = match self.0.find(doc, None).await {
+                    Ok(v) => v,
+                    Err(_) => return None,
+                };
+                let mut res = vec![];
+                while let Some(module) = cursor.next().await {
+                    if let Ok(m) = module {
+                        let code = m.code();
+                        remain.remove(&code);
+                        res.push((code, m.prereqtree()));
+                    }
                 }
-            }
-            res.extend(remain.into_iter().map(|c| (c, PrereqTree::empty())));
-            Some(HashMap::from_iter(res))
-        };
+                Some(HashMap::from_iter(res.into_iter().chain(
+                    remain.into_iter().map(|c| (c, PrereqTree::empty())),
+                )))
+            };
         Ok(tree.global_flatten(loader).await)
     }
 

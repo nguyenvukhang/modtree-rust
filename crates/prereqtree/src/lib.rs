@@ -6,14 +6,13 @@ mod util;
 
 use loader::Loader;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::mem;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PrereqTree {
-    Empty,
     Only(String),
     And { and: Vec<PrereqTree> },
     Or { or: Vec<PrereqTree> },
@@ -22,7 +21,7 @@ use PrereqTree::*;
 
 impl PrereqTree {
     pub fn empty() -> Self {
-        PrereqTree::Empty
+        PrereqTree::Only("".to_string())
     }
 
     pub fn only(code: &str) -> Self {
@@ -35,7 +34,6 @@ impl PrereqTree {
     /// Checks if a code exists in the entire prereqtree.
     pub fn contains_code(&self, module_code: &str) -> bool {
         match self {
-            Empty => false,
             Only(only) => only.eq(module_code),
             And { and } => and.iter().any(|v| v.contains_code(module_code)),
             Or { or } => or.iter().any(|v| v.contains_code(module_code)),
@@ -53,8 +51,10 @@ impl PrereqTree {
     /// Counts the minimum number of modules required to satisfy the tree.
     pub fn min_to_unlock(&self) -> u8 {
         match self {
-            Empty => 0,
-            Only(_) => 1,
+            Only(v) => match v.as_str() {
+                "" => 0,
+                _ => 1,
+            },
             And { and } => and.iter().map(|v| v.min_to_unlock()).sum(),
             Or { or } => {
                 or.iter().map(|v| v.min_to_unlock()).min().unwrap_or(0)
@@ -66,11 +66,8 @@ impl PrereqTree {
     /// a list that is already done.
     pub fn left_to_unlock(&self, done: &HashSet<String>) -> u8 {
         match self {
-            Empty => 0,
-            Only(only) => match done.contains(only) {
-                true => 0,
-                false => 1,
-            },
+            Only(only) if only.eq("") || done.contains(only) => 0,
+            Only(_) => 1,
             And { and } => and.iter().map(|v| v.left_to_unlock(done)).sum(),
             Or { or } => {
                 or.iter().map(|v| v.left_to_unlock(done)).min().unwrap_or(0)
@@ -81,8 +78,7 @@ impl PrereqTree {
     /// Checks if a set of modules done satisfies the prereqtree.
     pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         match self {
-            Empty => true,
-            Only(only) => done.contains(only),
+            Only(only) => only.eq("") || done.contains(only),
             And { and } => {
                 and.iter().fold(true, |a, p| a && p.satisfied_by(done))
             }
@@ -95,8 +91,7 @@ impl PrereqTree {
     /// Checks if a set of modules done satisfies the prereqtree.
     pub fn satisfied_by_one(&self, done: &str) -> bool {
         match self {
-            Empty => true,
-            Only(only) => done.eq(only),
+            Only(only) => done.eq("") || done.eq(only),
             And { and } => {
                 and.iter().fold(true, |a, p| a && p.satisfied_by_one(done))
             }
@@ -109,7 +104,7 @@ impl PrereqTree {
     /// Returns one possible path that is shortest.
     pub fn min_path(&self) -> Vec<String> {
         match self {
-            Empty => vec![],
+            Only(only) if only.eq("") => vec![],
             Only(only) => vec![only.to_string()],
             And { and } => {
                 let mut set = HashSet::new();
@@ -140,7 +135,7 @@ impl PrereqTree {
     /// Returns every module found in the PrereqTree in a list.
     pub fn flatten(&self) -> Vec<String> {
         match self {
-            Empty => vec![],
+            Only(only) if only.eq("") => vec![],
             Only(only) => vec![only.to_string()],
             Or { or: t } | And { and: t } => {
                 let mut set = HashSet::new();
@@ -153,7 +148,7 @@ impl PrereqTree {
     /// Returns every valid path taken to satisfy this prereqtree.
     pub fn all_paths(&self) -> Vec<Vec<String>> {
         match self {
-            Empty => vec![],
+            Only(only) if only.eq("") => vec![],
             Only(only) => vec![vec![only.to_string()]],
             Or { or: t } => {
                 // several possible journeys.
@@ -198,11 +193,11 @@ impl PrereqTree {
                         .flat_map(|v| v.flatten())
                         .filter(|v| !result.contains(v)),
                 ),
+                Only(only) if only.eq("") => {
+                    result.insert(code.to_string());
+                }
                 Only(only) => {
                     result.insert(only);
-                }
-                _ => {
-                    result.insert(code.to_string());
                 }
             }
         }
@@ -220,8 +215,7 @@ impl PrereqTree {
         }
         fn f(t: PrereqTree, code: &str) -> Option<PrereqTree> {
             match t {
-                Empty => None,
-                Only(v) if v.eq(code) => None,
+                Only(v) if v.eq(code) || v.eq("") => None,
                 Only(v) => Some(Only(v)),
                 And { and } => match filter(and, code) {
                     and if and.is_empty() => None,
@@ -233,7 +227,10 @@ impl PrereqTree {
                 },
             }
         }
-        mem::swap(self, &mut f(self.clone(), module_code).unwrap_or(Empty));
+        mem::swap(
+            self,
+            &mut f(self.clone(), module_code).unwrap_or(Self::empty()),
+        );
     }
 
     pub fn debug<T: std::fmt::Debug>(trees: &Vec<(String, T)>) {

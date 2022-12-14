@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! t {
     () => {
-        crate::PrereqTree::Empty
+        crate::PrereqTree::empty()
     };
     (and, $($module:expr),*) => {
         crate::PrereqTree::And { and: vec![ $(($module),)*] }

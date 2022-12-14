@@ -13,7 +13,7 @@ impl From<nusmods::PrereqTree> for PrereqTree {
             N::And { and } => {
                 Self::And { and: and.into_iter().map(Self::from).collect() }
             }
-            N::Only(m) if m.is_empty() => Self::Empty,
+            N::Only(m) if m.is_empty() => Self::empty(),
             N::Only(m) => Self::Only(m),
         }
     }
@@ -22,7 +22,6 @@ impl From<nusmods::PrereqTree> for PrereqTree {
 impl fmt::Debug for PrereqTree {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Empty => write!(f, ""),
             Self::Only(v) => write!(f, "{v}"),
             Self::Or { or: t } => write!(f, "OR {t:?}"),
             Self::And { and: t } => write!(f, "AND {t:?}"),
@@ -49,7 +48,6 @@ fn _eq(t1: &PrereqTree, t2: &PrereqTree) -> bool {
         (Or { or: v1 }, Or { or: v2 }) => vec_eq(v1, v2, |a, b| _eq(a, b)),
         (And { and: v1 }, And { and: v2 }) => vec_eq(v1, v2, |a, b| _eq(a, b)),
         (Only(v1), Only(v2)) => v1.eq(v2),
-        (Empty, Empty) => true,
         _ => false,
     }
 }
