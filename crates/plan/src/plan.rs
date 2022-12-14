@@ -34,6 +34,7 @@ impl Semester {
     }
 }
 
+#[derive(Clone)]
 pub struct Plan {
     semesters: Vec<Semester>,
     /// start state
@@ -70,6 +71,64 @@ impl Plan {
     pub fn commit(&mut self, year: i32, sem: i32, code: &str) -> Result<bool> {
         let semester = self.get_semester(year, sem)?;
         Ok(semester.insert(code, ModuleKind::Commit))
+    }
+
+    pub fn get_targets(&self) -> Vec<String> {
+        self.semesters
+            .iter()
+            .flat_map(|sem| {
+                sem.modules.iter().filter_map(|v| match v.1 {
+                    ModuleKind::Target => Some(v.0.to_string()),
+                    _ => None,
+                })
+            })
+            .collect()
+    }
+
+    pub fn get_commits(&self) -> Vec<String> {
+        self.semesters
+            .iter()
+            .flat_map(|sem| {
+                sem.modules.iter().filter_map(|v| match v.1 {
+                    ModuleKind::Commit => Some(v.0.to_string()),
+                    _ => None,
+                })
+            })
+            .collect()
+    }
+
+    pub async fn fill(&self) -> Result<Self> {
+        let plan = self.to_owned();
+        let targets = plan.get_targets();
+        let commits = plan.get_commits();
+        let acad_year = self.matric.acad_year();
+
+        // sample space of all the modules related to the target modules
+        let mut sample_space: HashSet<String> = HashSet::new();
+        let mut handles = vec![];
+        for target in targets {
+            let src = self.src.to_owned();
+            let acad_year = (&acad_year).to_string();
+            let h = tokio::spawn(async move {
+                src.flatten_requirements(&target, &acad_year).await
+            });
+            handles.push(h);
+        }
+        for handle in handles {
+            sample_space.extend(handle.await.unwrap()?);
+        }
+
+        // remove the modules that are already committed
+        sample_space.retain(|v| !commits.contains(v));
+
+        // sort sample_space by topological order
+        // poll this queue while populating the `plan`
+        // remember to check for sem availability on each module
+
+        println!("sample space -> {sample_space:?}");
+        // println!("target -> {targets:?}");
+        println!("commits -> {commits:?}");
+        Ok(plan)
     }
 
     /// get the index of `self.road` from year and sem.

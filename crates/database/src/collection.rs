@@ -6,7 +6,7 @@ use prereqtree::PrereqTree;
 use std::collections::{HashMap, HashSet};
 use types::{Error, Module, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleCollection(mongodb::Collection<Module>);
 
 impl ModuleCollection {
@@ -120,6 +120,33 @@ impl ModuleCollection {
             module_code.to_string(),
             acad_year.to_string(),
         ))
+    }
+
+    /// Finds many modules, and returns a same-sized result.
+    pub async fn find_many(
+        &self,
+        module_codes: &Vec<String>,
+        acad_year: &str,
+    ) -> Result<Vec<Result<Module>>> {
+        let mut remain: HashSet<String> =
+            HashSet::from_iter(module_codes.iter().map(|v| v.to_string()));
+        let doc = doc! {
+            "acad_year": acad_year,
+            "module_code": { "$in": &module_codes }
+        };
+        let mut res = vec![];
+        let mut cursor = self.0.find(doc, None).await?;
+        while let Some(module) = cursor.next().await {
+            if let Ok(m) = module {
+                let code = m.code();
+                remain.remove(&code);
+                res.push(Ok(m));
+            }
+        }
+        res.extend(remain.into_iter().map(|code| {
+            Err(Error::ModuleNotFound(code.to_string(), acad_year.to_string()))
+        }));
+        Ok(res)
     }
 
     pub async fn flatten_requirements(

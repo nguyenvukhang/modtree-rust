@@ -33,6 +33,11 @@ Processing
 - Every time a sem is incremented, check the `condition` modules for
   updates.
 
+## Mid-impl optimization ideas
+
+- cache full modules to memory to be reduce calls to db
+  (global_flatten and topological_sort both use similar calls)
+
 ## Module completion
 
 Pre-requisite trees are not going to be directly related to inter-node

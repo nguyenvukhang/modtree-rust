@@ -16,6 +16,9 @@ impl Period {
     pub fn year(&self) -> i32 {
         self.0
     }
+    pub fn acad_year(&self) -> String {
+        format!("{}/{}", self.0, self.0 + 1)
+    }
     pub fn sem(&self) -> i32 {
         self.1
     }

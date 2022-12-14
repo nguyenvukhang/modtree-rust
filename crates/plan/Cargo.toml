@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 database = { version = "0.0.1", path = "../database" }
 types = { version = "0.0.1", path = "../types" }
+tokio = { version = "1.23.0", features = ["full"] }
 
 [lib]
 doctest = false
