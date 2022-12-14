@@ -1,11 +1,44 @@
 use crate::structs::*;
 use database::collection::ModuleCollection;
-use std::collections::HashMap;
-use types::{Error, Module, Result};
+use std::collections::HashSet;
+use std::fmt;
+use std::hash::Hash;
+use types::{Error, Result};
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+pub enum ModuleKind {
+    Commit,
+    Target,
+}
+
+#[derive(Default, Clone)]
+pub struct Semester {
+    modules: HashSet<(String, ModuleKind)>,
+    limit: usize,
+}
+
+impl fmt::Debug for Semester {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Sem")
+            .field(&format!("mods[{}]", self.limit), &self.modules)
+            .finish()
+    }
+}
+
+impl Semester {
+    pub fn new(limit: usize) -> Self {
+        Self { modules: HashSet::new(), limit }
+    }
+    pub fn insert(&mut self, code: &str, kind: ModuleKind) -> bool {
+        self.modules.insert((code.to_string(), kind))
+    }
+}
 
 pub struct Plan {
+    semesters: Vec<Semester>,
+    /// start state
     matric: Period,
-    semesters: HashMap<Period, ModuleList>,
+    /// Source of data
     src: ModuleCollection,
 }
 
@@ -17,54 +50,50 @@ impl Plan {
         src: ModuleCollection,
     ) -> Result<Self> {
         let matric = Period::new(matric_year, matric_sem)?;
-        Ok(Self { matric, semesters: HashMap::new(), src })
+        Ok(Self {
+            matric,
+            // 5 years * 4 sems
+            semesters: vec![Semester::new(5); 20],
+            src,
+        })
+    }
+
+    /// Sets a target module. The "I want to do this module in the future, by
+    /// this year, by this semester."
+    pub fn target(&mut self, year: i32, sem: i32, code: &str) -> Result<bool> {
+        let semester = self.get_semester(year, sem)?;
+        Ok(semester.insert(code, ModuleKind::Target))
+    }
+
+    /// Commits to a module. The "I will do/have done this module, by this year,
+    /// by this semester."
+    pub fn commit(&mut self, year: i32, sem: i32, code: &str) -> Result<bool> {
+        let semester = self.get_semester(year, sem)?;
+        Ok(semester.insert(code, ModuleKind::Commit))
+    }
+
+    /// get the index of `self.road` from year and sem.
+    fn get_semester(&mut self, year: i32, sem: i32) -> Result<&mut Semester> {
+        let raw = (year - 1) * 4 + sem - 1;
+        if !(0 <= raw && raw < 20) {
+            Err(Error::InvalidData(format!("year: {year}, sem: {sem}")))
+        } else {
+            let idx = raw as usize;
+            self.semesters.get_mut(idx).ok_or(Error::InvalidIndex(idx, 0, 19))
+        }
+    }
+
+    pub fn acad_year(&self, year: i32) -> String {
+        let base = self.matric.year() + year - 1;
+        format!("{}/{}", base, base + 1)
+    }
+
+    pub fn semesters(&self) -> &Vec<Semester> {
+        &self.semesters
     }
 
     /// Get the matriculation year.
     pub fn matric(&self) -> Period {
         self.matric
-    }
-
-    /// Get a reference to the semesters.
-    pub fn semesters(&self) -> &HashMap<Period, ModuleList> {
-        &self.semesters
-    }
-
-    /// Tries to add a module to a particular semester. Returns true if the
-    /// module was actually added.
-    pub async fn add(
-        &mut self,
-        year: i32,
-        sem: i32,
-        module_code: &str,
-    ) -> Result<bool> {
-        let y = self.matric.year() + year - 1;
-        let acad_year = format!("{}/{}", y, y + 1);
-        let module = self.src.find_one(module_code, &acad_year).await?;
-        if !module.is_offered_in_sem(sem) {
-            return Err(Error::ModuleNotOfferedInSem(module.code(), sem));
-        }
-        let period = Period::new(year, sem)?;
-        if let Some(mod_list) = self.semesters.get_mut(&period) {
-            Ok(mod_list.insert(module))
-        } else {
-            self.semesters.insert(period, ModuleList::with_one(module));
-            Ok(true)
-        }
-    }
-
-    /// Tries to remove a module from a particular semester. Returns true if the
-    /// module was actually removed.
-    pub fn remove(&mut self, year: i32, sem: i32, code: &str) -> Result<bool> {
-        let period = Period::new(year, sem)?;
-        let result = if let Some(mod_list) = self.semesters.get_mut(&period) {
-            Ok(mod_list.remove(code))
-        } else {
-            Ok(false)
-        };
-        if self.semesters.get(&period).map_or(false, |v| v.len() == 0) {
-            self.semesters.remove(&period);
-        }
-        result
     }
 }

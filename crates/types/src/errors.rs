@@ -21,6 +21,9 @@ pub enum Error {
     #[error("Not found")]
     NotFound,
 
+    #[error("Invalid index: {0}. Choose a number in the range[{1}, {2}]")]
+    InvalidIndex(usize, usize, usize),
+
     #[error("Module not found: {0}, AY{1}")]
     ModuleNotFound(String, String),
 

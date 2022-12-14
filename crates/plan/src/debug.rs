@@ -1,5 +1,5 @@
-use crate::structs::*;
 use crate::plan::Plan;
+use crate::structs::*;
 use std::fmt;
 
 impl fmt::Debug for Period {
@@ -16,8 +16,28 @@ impl fmt::Debug for Period {
     }
 }
 
+fn sem(x: i32) -> String {
+    match x {
+        1 => "Sem 1",
+        2 => "Sem 2",
+        3 => "S.T.1",
+        4 => "S.T.2",
+        _ => "[invalid semester]",
+    }
+    .to_string()
+}
+
 impl fmt::Debug for Plan {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[plan]\nMatric: {:?}\n[semesters]\n{:?}", self.matric(), self.semesters())
+        let sems = self.semesters();
+        let sems = sems
+            .iter()
+            .enumerate()
+            .map(|(i, list)| {
+                format!("Y{}:{} -> {list:?}", i / 4 + 1, sem(i as i32 % 4 + 1))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        write!(f, "[plan]\nMatric: {:?}\n[semesters]\n{sems}", self.matric())
     }
 }
