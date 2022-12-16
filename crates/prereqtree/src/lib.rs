@@ -11,6 +11,8 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::mem;
 
+pub use util::vec_eq;
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PrereqTree {
@@ -255,14 +257,19 @@ impl PrereqTree {
                 v => v,
             }
         }
-        let end = keyed.len();
-        for i in 0..end {
+        let mut i = 0;
+        while i < keyed.len() {
+            let n = keyed.len();
+            keyed[i..n].sort_by(comp);
             if keyed[i].2.min_to_unlock() > 0 {
-                panic!("This module can't be done: {}", keyed[i].0);
+                eprintln!("WARNING: module can't be done: {}", keyed[i].0);
+                keyed.remove(i);
+                continue;
             }
-            keyed[i..end].sort_by(comp);
             let code = keyed[i].0.clone();
-            keyed[i..end].iter_mut().for_each(|t| t.2.resolve(&code));
+            let n = keyed.len();
+            keyed[i..n].iter_mut().for_each(|t| t.2.resolve(&code));
+            i += 1;
         }
         keyed.into_iter().map(|v| (v.0, v.1)).collect()
     }

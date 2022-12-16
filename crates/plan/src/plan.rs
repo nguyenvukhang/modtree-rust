@@ -104,28 +104,30 @@ impl Plan {
         let acad_year = self.matric.acad_year();
 
         // sample space of all the modules related to the target modules
-        let mut sample_space: HashSet<String> = HashSet::new();
-        let mut handles = vec![];
-        for target in targets {
-            let src = self.src.to_owned();
-            let acad_year = (&acad_year).to_string();
-            let h = tokio::spawn(async move {
-                src.flatten_requirements(&target, &acad_year).await
-            });
-            handles.push(h);
-        }
-        for handle in handles {
-            sample_space.extend(handle.await.unwrap()?);
-        }
+        let mut sample_space =
+            self.src.flatten_requirements(targets, &acad_year).await?;
 
         // remove the modules that are already committed
-        sample_space.retain(|v| !commits.contains(v));
+        // TODO: uncomment the next line
+        // sample_space.retain(|v| !commits.contains(v.code()));
+        
+        println!(
+            "sample space -> {:?}",
+            sample_space.iter().map(|v| v.code()).collect::<Vec<_>>()
+        );
+
+        let sample_space =
+            sample_space.into_iter().map(|m| (m.to_code(), m)).collect();
+        let sorted = ModuleCollection::topological_sort(sample_space);
+        println!(
+            "topo sorted -> {:?}",
+            sorted.iter().map(|v| &v.0).collect::<Vec<_>>()
+        );
 
         // sort sample_space by topological order
         // poll this queue while populating the `plan`
         // remember to check for sem availability on each module
 
-        println!("sample space -> {sample_space:?}");
         // println!("target -> {targets:?}");
         println!("commits -> {commits:?}");
         Ok(plan)

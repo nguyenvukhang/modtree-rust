@@ -21,7 +21,7 @@ impl Graph {
     }
 
     fn done_codes<T: FromIterator<String>>(&self) -> T {
-        self.done.iter().map(|v| v.code()).collect()
+        self.done.iter().map(|v| v.to_code()).collect()
     }
 
     fn pretty(&self) -> String {
@@ -40,7 +40,7 @@ impl Graph {
             Ok(v) => v,
             _ => return eprintln!("Unable to fetch module from database."),
         };
-        let done = self.done.iter().map(|v| v.code()).collect();
+        let done = self.done.iter().map(|v| v.to_code()).collect();
         match m.satisfied_by(&done) {
             true => {
                 eprintln!("added {code}!", code = m.code());

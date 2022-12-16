@@ -36,7 +36,10 @@ impl Module {
     pub fn is_offered_in_sem(&self, sem: i32) -> bool {
         self.semesters.contains(&sem)
     }
-    pub fn code(&self) -> String {
+    pub fn code(&self) -> &String {
+        &self.module_code
+    }
+    pub fn to_code(&self) -> String {
         self.module_code.to_string()
     }
     pub fn academic_year(&self) -> String {

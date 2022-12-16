@@ -6,12 +6,21 @@ use prereqtree::PrereqTree;
 use std::collections::{HashMap, HashSet};
 use types::{Error, Module, Result};
 
+
+/// Module Collection Inner
+#[derive(Debug, Clone)]
+struct MCI(mongodb::Collection<Module>);
+
 #[derive(Debug, Clone)]
 pub struct ModuleCollection(mongodb::Collection<Module>);
 
 impl ModuleCollection {
     pub fn new(x: mongodb::Collection<Module>) -> Self {
         Self(x)
+    }
+
+    pub async fn count(&self) -> Result<u64> {
+        Ok(self.0.count_documents(None, None).await?)
     }
 
     pub async fn import_academic_year(
@@ -102,10 +111,6 @@ impl ModuleCollection {
         Ok(result)
     }
 
-    pub async fn count(&self) -> Result<u64> {
-        Ok(self.0.count_documents(None, None).await?)
-    }
-
     pub async fn find_one(
         &self,
         module_code: &str,
@@ -127,59 +132,75 @@ impl ModuleCollection {
         &self,
         module_codes: &Vec<String>,
         acad_year: &str,
-    ) -> Result<Vec<Result<Module>>> {
+    ) -> Result<HashMap<String, Result<Module>>> {
         let mut remain: HashSet<String> =
             HashSet::from_iter(module_codes.iter().map(|v| v.to_string()));
         let doc = doc! {
             "acad_year": acad_year,
             "module_code": { "$in": &module_codes }
         };
-        let mut res = vec![];
+        let mut res = HashMap::new();
         let mut cursor = self.0.find(doc, None).await?;
         while let Some(module) = cursor.next().await {
             if let Ok(m) = module {
-                let code = m.code();
-                remain.remove(&code);
-                res.push(Ok(m));
+                remain.remove(m.code());
+                res.insert(m.to_code(), Ok(m));
             }
         }
-        res.extend(remain.into_iter().map(|code| {
-            Err(Error::ModuleNotFound(code.to_string(), acad_year.to_string()))
+        res.extend(remain.into_iter().map(|c| {
+            (c.to_owned(), Err(Error::ModuleNotFound(c, acad_year.into())))
         }));
         Ok(res)
     }
 
     pub async fn flatten_requirements(
         &self,
-        module_code: &str,
+        codes: Vec<String>,
         acad_year: &str,
-    ) -> Result<Vec<String>> {
-        let root_module = self.find_one(module_code, acad_year).await?;
-        let mut tree = root_module.prereqtree();
-        let loader =
-            |codes: Vec<String>| async move {
-                let doc = doc! {
-                    "acad_year": acad_year,
-                    "module_code": { "$in": &codes }
-                };
-                let mut remain: HashSet<String> = HashSet::from_iter(codes);
-                let mut cursor = match self.0.find(doc, None).await {
-                    Ok(v) => v,
-                    Err(_) => return None,
-                };
-                let mut res = vec![];
-                while let Some(module) = cursor.next().await {
-                    if let Ok(m) = module {
-                        let code = m.code();
-                        remain.remove(&code);
-                        res.push((code, m.prereqtree()));
+    ) -> Result<Vec<Module>> {
+        let mut remain = codes;
+        let mut result: HashSet<Module> = HashSet::new();
+        let mut fetched: HashSet<String> = HashSet::new();
+        while !remain.is_empty() {
+            let response = self.find_many(&remain, &acad_year).await?;
+            remain = vec![];
+            for (code, module) in response {
+                let prereqs = match module {
+                    Ok(v) => {
+                        fetched.insert(code.to_string());
+                        let prereqs = v.prereqtree_flatten();
+                        result.insert(v);
+                        prereqs
                     }
-                }
-                Some(HashMap::from_iter(res.into_iter().chain(
-                    remain.into_iter().map(|c| (c, PrereqTree::empty())),
-                )))
-            };
-        Ok(tree.global_flatten(loader).await)
+                    Err(_) => {
+                        fetched.insert(code);
+                        continue;
+                    }
+                };
+                remain.extend(
+                    prereqs.into_iter().filter(|c| !fetched.contains(c)),
+                );
+            }
+        }
+        Ok(Vec::from_iter(result))
+    }
+
+    pub fn topological_sort(
+        modules: Vec<(String, Module)>,
+    ) -> Vec<(String, Module)> {
+        let mut hash = HashMap::new();
+        let mut sorter = vec![];
+        for (code, module) in modules {
+            sorter.push((module.to_code(), module.prereqtree()));
+            hash.insert(code, module);
+        }
+        PrereqTree::topological_sort(sorter)
+            .into_iter()
+            .map(|(code, _)| {
+                let module = std::mem::take(hash.get_mut(&code).unwrap());
+                (code, module)
+            })
+            .collect()
     }
 
     /// Gets a full path down to modules with no requirements.
