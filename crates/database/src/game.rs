@@ -57,17 +57,4 @@ impl Graph {
     fn count(&self) -> usize {
         self.done.len()
     }
-
-    async fn radar(
-        &self,
-        max_distance: u8,
-    ) -> Result<HashMap<u8, Vec<Module>>> {
-        self.collection
-            .radar(
-                &self.current_acad_year,
-                self.done_codes::<HashSet<_>>(),
-                max_distance,
-            )
-            .await
-    }
 }

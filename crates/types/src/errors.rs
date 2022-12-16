@@ -61,13 +61,13 @@ pub enum Error {
     MongoDbBadDrop(String),
 
     #[error("Invalid semester array")]
-    InvalidSemesters(Vec<i32>),
+    InvalidSemesters(Vec<usize>),
 
     #[error("Invalid semester. Use a number from 1-4")]
     InvalidSemester,
 
     #[error("Module `{0}` not offered in this semester: `{1}`")]
-    ModuleNotOfferedInSem(String, i32),
+    ModuleNotOfferedInSem(String, usize),
 }
 
 impl From<reqwest::Error> for Error {

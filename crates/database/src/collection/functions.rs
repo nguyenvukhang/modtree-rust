@@ -1,4 +1,4 @@
-use crate::modules::inner::ModuleCollection;
+use crate::collection::inner::ModuleCollection;
 use mongodb::bson::doc;
 use prereqtree::PrereqTree;
 use std::collections::{HashMap, HashSet};

@@ -52,7 +52,7 @@ pub struct ModuleShort {
     #[serde(alias = "moduleCode")]
     pub module_code: String,
     pub title: String,
-    pub semesters: Vec<i32>,
+    pub semesters: Vec<usize>,
 }
 
 impl ModuleShort {
@@ -64,9 +64,6 @@ impl ModuleShort {
 impl PartialEq for ModuleShort {
     fn eq(&self, rhs: &ModuleShort) -> bool {
         self.module_code.eq(&rhs.module_code)
-    }
-    fn ne(&self, rhs: &ModuleShort) -> bool {
-        !self.eq(rhs)
     }
 }
 impl Eq for ModuleShort {}
