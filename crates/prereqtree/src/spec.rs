@@ -260,6 +260,9 @@ fn resolve_test() {
             t!(or, t!(G), t!(H))
         )
     );
+
+    // resolve to empty tree
+    resolve!(t!(A), "A", t!());
 }
 
 #[test]

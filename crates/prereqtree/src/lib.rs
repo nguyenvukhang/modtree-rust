@@ -44,7 +44,7 @@ impl PrereqTree {
     }
 
     /// Checks if prereqtree is a leaf node.
-    pub fn is_leaf(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         match self {
             Only(only) if only.is_empty() => true,
             _ => false,

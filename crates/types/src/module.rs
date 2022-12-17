@@ -42,14 +42,14 @@ impl Module {
     pub fn semesters(&self) -> &Vec<usize> {
         &self.semesters
     }
+    pub fn to_semesters(&self) -> Vec<usize> {
+        self.semesters.clone()
+    }
     pub fn to_code(&self) -> String {
         self.module_code.to_string()
     }
     pub fn academic_year(&self) -> String {
         self.acad_year.to_string()
-    }
-    pub fn is_leaf(&self) -> bool {
-        self.prereqtree.is_leaf()
     }
     pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
         self.prereqtree.satisfied_by(done)

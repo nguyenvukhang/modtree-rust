@@ -3,27 +3,33 @@
 use crate::structs::ModuleKind;
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Default, Clone)]
 pub struct Semester {
-    modules: HashSet<(String, ModuleKind)>,
+    modules: Vec<(String, ModuleKind)>,
     limit: usize,
+}
+
+impl Hash for Semester {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.modules.hash(state);
+    }
 }
 
 impl fmt::Debug for Semester {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Sem")
-            .field(&format!("mods[{}]", self.limit), &self.modules)
-            .finish()
+        write!(f, "{:?}", self.modules.iter().map(|v| &v.0).collect::<Vec<_>>())
     }
 }
 
 impl Semester {
     pub fn new(limit: usize) -> Self {
-        Self { modules: HashSet::new(), limit }
+        Self { modules: vec![], limit }
     }
-    pub fn insert(&mut self, code: &str, kind: ModuleKind) -> bool {
-        self.modules.insert((code.to_string(), kind))
+    pub fn insert(&mut self, code: &str, kind: ModuleKind) {
+        self.modules.push((code.to_string(), kind));
+        self.modules.sort_by(|a, b| a.0.cmp(&b.0))
     }
     pub fn is_empty(&self) -> bool {
         self.modules.is_empty()
