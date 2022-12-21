@@ -7,7 +7,7 @@ pub use module::Module;
 
 pub type Result<T> = std::result::Result<T, errors::Error>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub(crate) enum Workload {
     String(String),

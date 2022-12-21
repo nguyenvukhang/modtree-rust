@@ -51,6 +51,20 @@ impl PrereqTree {
         }
     }
 
+    /// Retains only the modules listed in the `keep` list
+    pub fn retain(&self, keep: &HashSet<String>) -> Option<Self> {
+        match self {
+            Only(v) if keep.contains(v) => Some(Only(v.to_string())),
+            Only(_) => None,
+            And { and } => Some(Self::And {
+                and: and.iter().filter_map(|v| v.retain(keep)).collect(),
+            }),
+            Or { or } => Some(Self::Or {
+                or: or.iter().filter_map(|v| v.retain(keep)).collect(),
+            }),
+        }
+    }
+
     /// Counts the minimum number of modules required to satisfy the tree.
     pub fn min_to_unlock(&self) -> u8 {
         match self {
@@ -133,6 +147,14 @@ impl PrereqTree {
             // must contain all required modules
             .filter(|p| required.iter().all(|r| p.contains(r)))
             .min_by(|a, b| a.len().cmp(&b.len()))
+    }
+
+    /// Returns a min path through to leaf nodes.
+    pub fn min_path_global(
+        &self,
+        data: HashMap<String, PrereqTree>,
+    ) -> Vec<String> {
+        vec![]
     }
 
     /// Returns every module found in the PrereqTree in a list.

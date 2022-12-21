@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// `modtree` edition of a module
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Module {
     acad_year: String,
     preclusion: String,
@@ -56,6 +56,9 @@ impl Module {
     }
     pub fn prereqtree(&self) -> PrereqTree {
         self.prereqtree.clone()
+    }
+    pub fn set_tree(&mut self, tree: PrereqTree) {
+        self.prereqtree = tree
     }
     pub fn prereqtree_contains(&self, module_code: &str) -> bool {
         self.prereqtree.contains_code(module_code)

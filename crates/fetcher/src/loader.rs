@@ -75,7 +75,7 @@ impl Loader {
                 }
             })
             .map(|(code, short)| async move {
-                let module = self.load_module(code).await.and_then(|mut m| {
+                let module = self.load_module(code).await.and_then(|m| {
                     let mut m = Module::from(m);
                     m.set_semesters(&short.semesters).map(|_| m)
                 });
