@@ -217,6 +217,28 @@ impl PrereqTree {
         }
         keyed.into_iter().map(|v| (v.0, v.1)).collect()
     }
+
+    /// Inserts a module and its expanded PrereqTree into the current tree.
+    pub fn insert(&mut self, module_code: &str, tree: &PrereqTree) {
+        type T = PrereqTree;
+        fn apply(v: Vec<PrereqTree>, code: &str, tree: &T) -> Vec<T> {
+            v.into_iter().filter_map(|t| f(t, code, tree)).collect()
+        }
+        fn f(base: T, code: &str, tree: &T) -> Option<T> {
+            match base {
+                Only(v) if code.eq(&v) => {
+                    Some(And { and: vec![Only(v), tree.clone()] })
+                }
+                Only(v) => Some(Only(v)),
+                And { and } => Some(And { and: apply(and, code, tree) }),
+                Or { or } => Some(Or { or: apply(or, code, tree) }),
+            }
+        }
+        mem::swap(
+            self,
+            &mut f(self.clone(), module_code, tree).unwrap_or(Self::empty()),
+        );
+    }
 }
 
 #[cfg(test)]

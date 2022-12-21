@@ -318,3 +318,34 @@ fn topological_sort_test() {
     let received = PrereqTree::topological_sort(expected.clone());
     assert_eq!(received, expected);
 }
+
+#[test]
+fn insert_test() {
+    let mut tree = t!(A);
+    tree.insert("A", &t!(or, t!(B), t!(C)));
+    assert_eq!(tree, t!(and, t!(A), t!(or, t!(B), t!(C))));
+
+    let mut tree = t!(
+        and,
+        t!(or, t!(A), t!(B)),
+        t!(or, t!(C), t!(D)),
+        t!(or, t!(E), t!(F), t!(and, t!(X), t!(Y))),
+        t!(or, t!(G), t!(H))
+    );
+    tree.insert("X", &t!(and, t!(P), t!(Q)));
+    assert_eq!(
+        tree,
+        t!(
+            and,
+            t!(or, t!(A), t!(B)),
+            t!(or, t!(C), t!(D)),
+            t!(
+                or,
+                t!(E),
+                t!(F),
+                t!(and, t!(and, t!(X), t!(and, t!(P), t!(Q))), t!(Y))
+            ),
+            t!(or, t!(G), t!(H))
+        )
+    );
+}
