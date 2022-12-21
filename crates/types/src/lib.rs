@@ -4,6 +4,7 @@ mod errors;
 mod module;
 pub use errors::*;
 pub use module::Module;
+use prereqtree::PrereqTree;
 
 pub type Result<T> = std::result::Result<T, errors::Error>;
 
@@ -17,5 +18,14 @@ pub(crate) enum Workload {
 impl Default for Workload {
     fn default() -> Self {
         Self::Numbers(vec![])
+    }
+}
+
+impl From<nusmods::Workload> for Workload {
+    fn from(w: nusmods::Workload) -> Self {
+        match w {
+            nusmods::Workload::String(s) => Self::String(s),
+            nusmods::Workload::Numbers(v) => Self::Numbers(v),
+        }
     }
 }

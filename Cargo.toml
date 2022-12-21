@@ -6,11 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-postgres = { version = "0.0.1", path = "crates/postgres" }
-prereqtree2 = { version = "0.0.1", path = "crates/prereqtree2" }
 prereqtree = { version = "0.0.1", path = "crates/prereqtree" }
 types = { version = "0.0.1", path = "crates/types" }
-plan = { version = "0.0.1", path = "crates/plan" }
 database = { version = "0.0.1", path = "crates/database" }
 tokio = { version = "1.23.0", features = ["full"] }
 serde_json = "1.0"
@@ -24,13 +21,11 @@ bench = false
 
 [workspace]
 members = [
-  "crates/postgres",
   "crates/fetcher",
   "crates/database",
   "crates/types",
   "crates/prereqtree",
-  "crates/prereqtree2",
   "crates/nusmods",
-  "crates/plan"
+  "crates/util"
 ]
 exclude = ["crates/experiments"]

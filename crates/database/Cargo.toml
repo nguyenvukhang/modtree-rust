@@ -14,6 +14,7 @@ dotenv = "0.15.0"
 types = { version = "0.0.1", path = "../types" }
 fetcher = { version = "0.0.1", path = "../fetcher" }
 prereqtree = { version = "0.0.1", path = "../prereqtree" }
+util = { version = "0.0.1", path = "../util" }
 
 [lib]
 doctest = false

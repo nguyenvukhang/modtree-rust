@@ -1,21 +1,11 @@
-use crate::collection::inner::ModuleCollection;
-use mongodb::bson::doc;
+use crate::ModuleCollection;
 use prereqtree::PrereqTree;
 use std::collections::{HashMap, HashSet};
 use types::{Module, Result};
 
 impl ModuleCollection {
-    pub async fn import_academic_year(
-        &self,
-        academic_year: &str,
-        limit: Option<usize>,
-    ) -> Result<()> {
-        let loader = fetcher::Loader::new(academic_year)?;
-        let modules = loader.load_all_modules(limit).await?;
-        self.delete_many(doc! { "academic_year": academic_year }).await?;
-        self.insert_many_unchecked(&modules).await.map(|_| ())
-    }
-
+    /// Obtain every requirement of a list of codes until all leaf nodes are
+    /// reached.
     pub async fn flatten_requirements(
         &self,
         codes: Vec<String>,
@@ -54,7 +44,7 @@ impl ModuleCollection {
         let mut hash = HashMap::new();
         let mut sorter = vec![];
         for (code, module) in modules {
-            sorter.push((module.to_code(), module.prereqtree()));
+            sorter.push((module.to_code(), module.to_prereqtree()));
             hash.insert(code, module);
         }
         PrereqTree::topological_sort(sorter)

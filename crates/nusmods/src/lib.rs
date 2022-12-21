@@ -4,7 +4,7 @@
 /// Used for pulling data from NUSMods.
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum PrereqTree {
     Only(String),
@@ -12,7 +12,7 @@ pub enum PrereqTree {
     Or { or: Vec<PrereqTree> },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum Workload {
     String(String),
@@ -56,31 +56,17 @@ pub struct ModuleShort {
 }
 
 impl ModuleShort {
-    pub fn code(&self) -> String {
+    pub fn to_code(&self) -> String {
         self.module_code.to_string()
     }
 }
 
-impl PartialEq for ModuleShort {
-    fn eq(&self, rhs: &ModuleShort) -> bool {
-        self.module_code.eq(&rhs.module_code)
-    }
-}
-impl Eq for ModuleShort {}
-
-use std::hash::{Hash, Hasher};
-impl Hash for ModuleShort {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.module_code.hash(state);
-    }
-}
-
+// For pulling modules that do not have these fields
 impl Default for PrereqTree {
     fn default() -> Self {
         Self::Only("".to_string())
     }
 }
-
 impl Default for Workload {
     fn default() -> Self {
         Self::Numbers(vec![])

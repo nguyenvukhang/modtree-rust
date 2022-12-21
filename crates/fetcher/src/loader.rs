@@ -33,7 +33,7 @@ impl Loader {
         let shorts = self.load_module_list().await?;
         let limit = limit.unwrap_or(shorts.len());
         let mut task: HashMap<String, _> = HashMap::from_iter(
-            shorts.iter().take(limit).map(|v| (v.code(), v)),
+            shorts.into_iter().take(limit).map(|v| (v.to_code(), v)),
         );
         let mut result = vec![];
         let mut attempts = 0;
@@ -59,14 +59,14 @@ impl Loader {
     /// Tries to load modules given a list of module codes.
     async fn try_load_modules(
         &self,
-        codes: &mut HashMap<String, &nusmods::ModuleShort>,
+        codes: &mut HashMap<String, nusmods::ModuleShort>,
     ) -> (Vec<Module>, HashMap<String, Result<Module>>) {
         self.0.clear_source_counts();
         let (total, mut done) = (codes.len(), 0);
         let interval = 200.max(total / 20);
         println!("fetching {} modules.", total);
         let handles = codes
-            .iter()
+            .into_iter()
             .inspect(|_| {
                 done += 1;
                 match done {
@@ -77,7 +77,12 @@ impl Loader {
             .map(|(code, short)| async move {
                 let module = self.load_module(code).await.and_then(|m| {
                     let mut m = Module::from(m);
-                    m.set_semesters(&short.semesters).map(|_| m)
+                    if short.semesters.iter().all(|v| 1 <= *v && *v <= 4) {
+                        m.set_semesters(short.semesters.clone());
+                        Ok(m)
+                    } else {
+                        Err(Error::InvalidSemesters(short.semesters.clone()))
+                    }
                 });
                 (code.to_owned(), module)
             });

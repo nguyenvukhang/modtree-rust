@@ -1,8 +1,9 @@
-pub mod client;
-pub mod database;
-pub mod dump;
-pub mod game;
-pub mod collection;
+mod client;
+mod database;
+mod inner;
+mod module_collection;
 
-#[cfg(test)]
-mod integration;
+pub mod dump;
+pub use client::Client;
+pub use database::Database;
+pub use inner::ModuleCollection;

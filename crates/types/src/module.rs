@@ -1,8 +1,9 @@
-use crate::{Error, Result, Workload};
+use crate::{Workload};
 use bson::oid::ObjectId;
 use prereqtree::PrereqTree;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 
 /// `modtree` edition of a module
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -26,61 +27,54 @@ pub struct Module {
 }
 
 impl Module {
-    pub fn set_semesters(&mut self, sems: &Vec<usize>) -> Result<()> {
-        self.semesters = sems.clone();
-        sems.iter()
-            .all(|v| 1 <= *v && *v <= 4)
-            .then_some(())
-            .ok_or(Error::InvalidSemesters(sems.clone()))
+    /// Gets a reference to the module's academic year
+    pub fn acad_year(&self) -> &String {
+        &self.acad_year
     }
-    pub fn is_offered_in_sem(&self, sem: usize) -> bool {
-        self.semesters.contains(&sem)
-    }
+
+    /// Gets a reference to the module's code
     pub fn code(&self) -> &String {
         &self.module_code
     }
-    pub fn semesters(&self) -> &Vec<usize> {
-        &self.semesters
-    }
-    pub fn to_semesters(&self) -> Vec<usize> {
-        self.semesters.clone()
-    }
+
+    /// Clones the module's code
     pub fn to_code(&self) -> String {
         self.module_code.to_string()
     }
-    pub fn academic_year(&self) -> String {
-        self.acad_year.to_string()
+
+    /// Gets a reference to the module's semester list
+    pub fn semesters(&self) -> &Vec<usize> {
+        &self.semesters
     }
-    pub fn satisfied_by(&self, done: &HashSet<String>) -> bool {
-        self.prereqtree.satisfied_by(done)
+
+    /// Clones the module's semester list
+    pub fn to_semesters(&self) -> Vec<usize> {
+        self.semesters.clone()
     }
-    pub fn prereqtree(&self) -> PrereqTree {
+
+    /// Gets a reference to the module's prereqtree
+    pub fn prereqtree(&self) -> &PrereqTree {
+        &self.prereqtree
+    }
+
+    /// Clones the module's prereqtree
+    pub fn to_prereqtree(&self) -> PrereqTree {
         self.prereqtree.clone()
     }
-    pub fn set_tree(&mut self, tree: PrereqTree) {
-        self.prereqtree = tree
-    }
-    pub fn prereqtree_contains(&self, module_code: &str) -> bool {
-        self.prereqtree.contains_code(module_code)
-    }
+
+    /// Gets all module codes in the prereqtree
     pub fn prereqtree_flatten(&self) -> Vec<String> {
         self.prereqtree.flatten()
     }
-    pub fn prereqtree_has_one_of(&self, module_code: &HashSet<String>) -> bool {
-        module_code.iter().any(|code| self.prereqtree.contains_code(code))
+
+    /// Sets the tree
+    pub fn set_tree(&mut self, tree: PrereqTree) {
+        self.prereqtree = tree
     }
-    pub fn left_to_unlock(&self, done: &HashSet<String>) -> u8 {
-        self.prereqtree.left_to_unlock(done)
-    }
-    pub fn min_path(&self) -> Vec<String> {
-        self.prereqtree.min_path()
-    }
-    pub fn min_path_filtered<S>(&self, filter: &Vec<S>) -> Option<Vec<String>>
-    where
-        S: AsRef<str>,
-    {
-        let f: Vec<_> = filter.iter().map(|v| v.as_ref().to_string()).collect();
-        self.prereqtree.min_path_filtered(&f)
+
+    /// Sets the semesters
+    pub fn set_semesters(&mut self, sems: Vec<usize>) {
+        self.semesters = sems;
     }
 }
 
@@ -88,20 +82,15 @@ impl PartialEq for Module {
     fn eq(&self, other: &Self) -> bool {
         self._id == other._id
     }
-    fn ne(&self, other: &Self) -> bool {
-        self._id != other._id
-    }
 }
 impl Eq for Module {}
 
-use std::hash::{Hash, Hasher};
 impl Hash for Module {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self._id.hash(state);
     }
 }
 
-use std::fmt;
 impl fmt::Debug for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Module")
@@ -109,15 +98,6 @@ impl fmt::Debug for Module {
             .field("sems", &self.semesters)
             .field("tree", &self.prereqtree)
             .finish()
-    }
-}
-
-impl From<nusmods::Workload> for Workload {
-    fn from(w: nusmods::Workload) -> Self {
-        match w {
-            nusmods::Workload::String(s) => Self::String(s),
-            nusmods::Workload::Numbers(v) => Self::Numbers(v),
-        }
     }
 }
 

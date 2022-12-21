@@ -1,17 +1,10 @@
 #[macro_use]
 mod macros;
-mod loader;
 mod std_impl;
-mod util;
 
-use loader::Loader;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
-use std::future::Future;
+use std::collections::HashSet;
 use std::mem;
-
-pub use util::vec_eq;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
@@ -105,19 +98,6 @@ impl PrereqTree {
         }
     }
 
-    /// Checks if a set of modules done satisfies the prereqtree.
-    pub fn satisfied_by_one(&self, done: &str) -> bool {
-        match self {
-            Only(only) => done.eq("") || done.eq(only),
-            And { and } => {
-                and.iter().fold(true, |a, p| a && p.satisfied_by_one(done))
-            }
-            Or { or } => or
-                .iter()
-                .fold(or.is_empty(), |a, p| a || p.satisfied_by_one(done)),
-        }
-    }
-
     /// Returns one possible path that is shortest.
     pub fn min_path(&self) -> Vec<String> {
         match self {
@@ -149,14 +129,6 @@ impl PrereqTree {
             .min_by(|a, b| a.len().cmp(&b.len()))
     }
 
-    /// Returns a min path through to leaf nodes.
-    pub fn min_path_global(
-        &self,
-        data: HashMap<String, PrereqTree>,
-    ) -> Vec<String> {
-        vec![]
-    }
-
     /// Returns every module found in the PrereqTree in a list.
     pub fn flatten(&self) -> Vec<String> {
         match self {
@@ -186,47 +158,6 @@ impl PrereqTree {
         }
     }
 
-    /// Flattens the tree until leaf nodes are reached.
-    pub async fn global_flatten<F, R>(&mut self, loader: F) -> Vec<String>
-    where
-        F: Fn(Vec<String>) -> R,
-        R: Future<Output = Option<HashMap<String, Self>>>,
-    {
-        let mut remaining: Vec<String> = self.flatten();
-        let mut result: HashSet<String> = HashSet::new();
-        let mut loader = Loader::new(loader);
-        while !remaining.is_empty() {
-            remaining.sort_by(|a, b| match (loader.get(a), loader.get(b)) {
-                (Some(_), _) => Ordering::Greater,
-                (_, Some(_)) => Ordering::Less,
-                _ => Ordering::Equal,
-            });
-            let (tree, code) = match loader.get(remaining.last().unwrap()) {
-                None => {
-                    loader.load_trees(&remaining).await;
-                    let code = remaining.pop().unwrap();
-                    (loader.get(&code).unwrap(), code)
-                }
-                Some(v) => (v, remaining.pop().unwrap()),
-            };
-
-            match tree {
-                And { and: t } | Or { or: t } => remaining.extend(
-                    t.iter()
-                        .flat_map(|v| v.flatten())
-                        .filter(|v| !result.contains(v)),
-                ),
-                Only(only) if only.eq("") => {
-                    result.insert(code.to_string());
-                }
-                Only(only) => {
-                    result.insert(only);
-                }
-            }
-        }
-        Vec::from_iter(result)
-    }
-
     /// Resolves a module code in th prereqtree. This is not just a function to
     /// remove the module. This function treats the module as done and updates
     /// the tree to reflect that. So if module A needs B and (C or D), then
@@ -254,15 +185,6 @@ impl PrereqTree {
             self,
             &mut f(self.clone(), module_code).unwrap_or(Self::empty()),
         );
-    }
-
-    pub fn debug<T: std::fmt::Debug>(trees: &Vec<(String, T)>) {
-        // let a: Vec<_> = trees.iter().map(|v| v.0.to_string()).collect();
-        println!("trees: ------------");
-        for (code, tree) in trees {
-            println!("{code}: {tree:?}")
-        }
-        println!("-------------------");
     }
 
     /// Sorts the modules into the order which they must be done in. Tie-breaks

@@ -25,7 +25,7 @@ impl ModuleCollection {
         let doc = to_document(module)?;
         let query = doc! {
             "module_code": module.code(),
-            "acad_year": module.academic_year(),
+            "acad_year": module.acad_year(),
         };
         let opts = UpdateOptions::builder().upsert(true).build();
         Ok(self.0.update_one(query, doc! { "$set": doc }, opts).await?)
@@ -119,5 +119,17 @@ impl ModuleCollection {
     /// Deletes many modules
     pub async fn delete_many(&self, query: Document) -> Result<DeleteResult> {
         self.0.delete_many(query, None).await.map_err(|e| e.into())
+    }
+
+    /// For loading a new academic year into the database.
+    pub async fn import_academic_year(
+        &self,
+        academic_year: &str,
+        limit: Option<usize>,
+    ) -> Result<()> {
+        let loader = fetcher::Loader::new(academic_year)?;
+        let modules = loader.load_all_modules(limit).await?;
+        self.delete_many(doc! { "academic_year": academic_year }).await?;
+        self.insert_many_unchecked(&modules).await.map(|_| ())
     }
 }

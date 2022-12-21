@@ -1,16 +1,14 @@
-use database::collection::ModuleCollection;
+use database::ModuleCollection;
 use prereqtree::PrereqTree;
-use serde_json::to_string_pretty;
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use types::Module;
-use serde::Serialize;
 
 #[allow(unused)]
 async fn db() {
-    use database::client::Client;
+    use database::Client;
     use prereqtree::PrereqTree;
-    let (_, db) = Client::debug_init().await.unwrap();
-    let m = db.modules();
+    let m = Client::debug_init().await.unwrap();
     let top = m.find_one("CS3244", "2022/2023").await.unwrap();
     let sample_space = m
         .flatten_requirements(vec!["CS3244".to_string()], "2022/2023")
@@ -74,16 +72,15 @@ fn to_node(module: &Module, data: &Mods) -> Node {
     Node {
         code: module.to_code(),
         sems: module.to_semesters().into_iter().map(|v| v as u8).collect(),
-        req: to_tree(module.prereqtree(), data),
+        req: to_tree(module.to_prereqtree(), data),
     }
     // Self::default()
 }
 
 #[tokio::main]
 async fn main() {
-    use database::client::Client;
-    let (_, db) = Client::debug_init().await.unwrap();
-    let m = db.modules();
+    use database::Client;
+    let m = Client::debug_init().await.unwrap();
     let sample_space = sample_space(&m).await;
 
     // mods that still exist

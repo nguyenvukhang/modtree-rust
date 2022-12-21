@@ -1,7 +1,7 @@
 /// These require correctly importing data from AY2021/2022 and AY2022/2023.
-use crate::client::Client;
-use prereqtree::vec_eq;
+use database::Client;
 use types::Result;
+use util::vec_eq;
 
 fn s_vec(v: &[&str]) -> Vec<String> {
     v.iter().map(|v| v.to_string()).collect()
@@ -9,8 +9,7 @@ fn s_vec(v: &[&str]) -> Vec<String> {
 
 #[tokio::test]
 async fn flatten_requirements_test() -> Result<()> {
-    let (_, db) = Client::debug_init().await?;
-    let collection = db.modules();
+    let collection = Client::debug_init().await?;
     let modules = s_vec(&["CS3244"]);
     let expected = s_vec(&[
         "CS3244", // 0

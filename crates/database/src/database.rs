@@ -1,4 +1,4 @@
-use crate::collection::ModuleCollection;
+use crate::ModuleCollection;
 use types::{Module, Result};
 
 /// wrapper for the standard mongo-db database with project-specific tooling
