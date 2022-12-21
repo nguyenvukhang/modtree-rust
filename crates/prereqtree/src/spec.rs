@@ -349,3 +349,37 @@ fn insert_test() {
         )
     );
 }
+
+#[test]
+fn normalize_test() {
+    // let mut tree = t!(and, t!(A), t!(and, t!(B)));
+    // tree.normalize();
+    // assert_eq!(tree, t!(and, t!(A), t!(B)));
+
+    let mut tree = t!(and, t!(A), t!(and, t!(B), t!(and, t!(C))));
+    tree.normalize();
+    assert_eq!(tree, t!(and, t!(A), t!(B), t!(C)));
+    
+    let mut tree = t!(and, t!(A), t!(and, t!(B), t!(and, t!(C), t!(D))));
+    tree.normalize();
+    assert_eq!(tree, t!(and, t!(A), t!(B), t!(C), t!(D)));
+
+    // let mut tree = t!(and, t!(and, t!(A), t!(and, t!(B), t!(C))), t!(D));
+    // tree.normalize();
+    // assert_eq!(tree, t!(and, t!(A), t!(B), t!(C), t!(D)));
+
+    // let mut tree = t!(
+    //     and,
+    //     t!(or, t!(A), t!(B)),
+    //     t!(or, t!(F), t!(and, t!(and, t!(X), t!(and, t!(P), t!(Q))), t!(Y)))
+    // );
+    // tree.normalize();
+    // assert_eq!(
+    //     tree,
+    //     t!(
+    //         and,
+    //         t!(or, t!(A), t!(B)),
+    //         t!(or, t!(F), t!(and, t!(X), t!(P), t!(Q), t!(Y)))
+    //     )
+    // );
+}

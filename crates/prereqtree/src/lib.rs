@@ -14,6 +14,7 @@ pub enum PrereqTree {
     Or { or: Vec<PrereqTree> },
 }
 use PrereqTree::*;
+type T = PrereqTree;
 
 /// Public-facing API
 impl PrereqTree {
@@ -192,7 +193,6 @@ impl PrereqTree {
     pub fn topological_sort(
         modules: Vec<(String, PrereqTree)>,
     ) -> Vec<(String, PrereqTree)> {
-        type T = PrereqTree;
         let mut keyed: Vec<(String, T, T)> =
             modules.into_iter().map(|v| (v.0, v.1.clone(), v.1)).collect();
         fn comp(a: &(String, T, T), b: &(String, T, T)) -> std::cmp::Ordering {
@@ -220,7 +220,6 @@ impl PrereqTree {
 
     /// Inserts a module and its expanded PrereqTree into the current tree.
     pub fn insert(&mut self, module_code: &str, tree: &PrereqTree) {
-        type T = PrereqTree;
         fn apply(v: Vec<PrereqTree>, code: &str, tree: &T) -> Vec<T> {
             v.into_iter().filter_map(|t| f(t, code, tree)).collect()
         }
@@ -238,6 +237,42 @@ impl PrereqTree {
             self,
             &mut f(self.clone(), module_code, tree).unwrap_or(Self::empty()),
         );
+    }
+
+    /// Normalizes a tree by flattening nested like-type trees, such as nested
+    /// `And` nodes or nested `Or` nodes.
+    pub fn normalize(&mut self) {
+        println!("enter ->{self:?}");
+        fn f(tree: PrereqTree) -> PrereqTree {
+            match tree {
+                And { and } => {
+                    let mut result = vec![];
+                    and.into_iter().for_each(|t| match t {
+                        And { and } => match f(And { and }) {
+                            And { and } => result.extend(and),
+                            _ => (),
+                        },
+                        v => result.push(v),
+                    });
+                    And { and: result }
+                }
+                Or { or } => {
+                    let mut result = vec![];
+                    or.into_iter().for_each(|t| match t {
+                        Or { or } => match f(Or { or }) {
+                            Or { or } => result.extend(or),
+                            _ => (),
+                        },
+                        v => result.push(v),
+                    });
+                    Or { or: result }
+                }
+                v => v,
+            }
+        }
+
+        let mut fresh = f(self.clone());
+        mem::swap(&mut fresh, self)
     }
 }
 
