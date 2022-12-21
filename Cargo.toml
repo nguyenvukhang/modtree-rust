@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 prereqtree = { version = "0.0.1", path = "crates/prereqtree" }
+path = { version = "0.0.1", path = "crates/path" }
 types = { version = "0.0.1", path = "crates/types" }
 database = { version = "0.0.1", path = "crates/database" }
 tokio = { version = "1.23.0", features = ["full"] }
@@ -21,11 +22,12 @@ bench = false
 
 [workspace]
 members = [
-  "crates/fetcher",
   "crates/database",
-  "crates/types",
-  "crates/prereqtree",
+  "crates/fetcher",
   "crates/nusmods",
+  "crates/path",
+  "crates/prereqtree",
+  "crates/types",
   "crates/util"
 ]
 exclude = ["crates/experiments"]

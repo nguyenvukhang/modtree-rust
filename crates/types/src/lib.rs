@@ -4,7 +4,6 @@ mod errors;
 mod module;
 pub use errors::*;
 pub use module::Module;
-use prereqtree::PrereqTree;
 
 pub type Result<T> = std::result::Result<T, errors::Error>;
 

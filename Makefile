@@ -1,6 +1,9 @@
 # @sh scripts/debug.sh release database
 # @sh scripts/debug.sh release fetcher
 
+call:
+	make build_release
+
 test:
 	cargo test --workspace
 
@@ -9,4 +12,9 @@ build:
 	@cargo build --workspace
 	@./target/debug/modtree
 
-.PHONY: test build
+build_release:
+	# @sh scripts/debug.sh debug database
+	@cargo build --workspace --release
+	@./target/release/modtree
+
+.PHONY: test build call build_release

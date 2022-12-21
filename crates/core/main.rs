@@ -1,7 +1,6 @@
 use database::ModuleCollection;
-use prereqtree::PrereqTree;
-use serde::Serialize;
-use std::collections::{HashMap, HashSet};
+use path::Path;
+use std::collections::BinaryHeap;
 use types::Module;
 
 #[allow(unused)]
@@ -17,100 +16,65 @@ async fn db() {
     println!("{sample_space:?}");
 }
 
-async fn sample_space(m: &ModuleCollection) -> Vec<Module> {
-    m.flatten_requirements(vec!["CS3244".to_string()], "2022/2023")
-        .await
-        .unwrap()
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct Node {
-    code: String,
-    sems: Vec<u8>,
-    req: Tree2,
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub enum Tree2 {
-    #[default]
-    None,
-    Node(Box<Node>),
-    And(Vec<Tree2>),
-    Or(Vec<Tree2>),
-}
-use Tree2::*;
-
-impl Tree2 {
-    fn node(m: &Node) -> Self {
-        Self::Node(Box::new(m.clone()))
-    }
-}
-
-#[derive(Debug)]
-struct Mods(HashMap<String, Module>);
-impl Mods {
-    fn get(&self, code: &str) -> Module {
-        self.0.get(code).expect(&format!("should have {code}")).clone()
-    }
-}
-
-fn to_tree(tree: PrereqTree, data: &Mods) -> Tree2 {
-    use PrereqTree::*;
-    match tree {
-        Only(v) if v.is_empty() => Tree2::None,
-        Only(v) => Tree2::Node(Box::new(to_node(&data.get(&v), data))),
-        And { and } => {
-            Tree2::And(and.into_iter().map(|t| to_tree(t, data)).collect())
-        }
-        Or { or } => {
-            Tree2::Or(or.into_iter().map(|t| to_tree(t, data)).collect())
-        }
-    }
-}
-
-fn to_node(module: &Module, data: &Mods) -> Node {
-    Node {
-        code: module.to_code(),
-        sems: module.to_semesters().into_iter().map(|v| v as u8).collect(),
-        req: to_tree(module.to_prereqtree(), data),
-    }
-    // Self::default()
+async fn sample_space(m: &ModuleCollection, codes: Vec<&str>) -> Vec<Module> {
+    m.flatten_requirements(
+        codes.iter().map(|v| v.to_string()).collect(),
+        "2022/2023",
+    )
+    .await
+    .unwrap()
 }
 
 #[tokio::main]
 async fn main() {
     use database::Client;
     let m = Client::debug_init().await.unwrap();
-    let sample_space = sample_space(&m).await;
+    let sample_space = sample_space(&m, vec!["CS3244"]).await;
 
-    // mods that still exist
-    let valid_mods: HashSet<_> =
-        sample_space.iter().map(|m| m.to_code()).collect();
+    // List of possible paths to take that reaches CS3244
+    let mut possible_routes = vec![];
+    let mut prl = usize::MAX;
 
-    // HashMap of modules, where only valid mods in prereqtrees are kept
-    let hashed_mods = sample_space
-        .clone()
-        .into_iter()
-        .map(|mut m| {
-            m.set_tree(
-                m.prereqtree()
-                    .retain(&valid_mods)
-                    .unwrap_or(PrereqTree::empty()),
-            );
-            (m.to_code(), m)
-        })
-        .collect::<HashMap<String, _>>();
-    let mods = Mods(hashed_mods.clone());
-    for (code, module) in hashed_mods {
-        if code.eq("CS3244") {
-            println!("all: {:?}", module.prereqtree().all_paths());
-            // println!("orignal ->{:?}", module);
-            // println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            // let node = to_node(&module, &mods);
-            // println!("tranf   ->{:?}", node);
-            // let pretty = to_string_pretty(&node);
-            // println!("tranf   ->{}", pretty.unwrap());
+    let mut pq: BinaryHeap<Path> = BinaryHeap::new();
+    pq.push(Path::new());
+    // set the modules that want to be completed
+    // let want = vec!["CS3244".to_string(), "CS3216".to_string()];
+    let want = vec!["CS3244".to_string()];
+
+    while let Some(mut path) = pq.pop() {
+        println!("{}", pq.len());
+        println!("{path:?}");
+        if path.len() > prl {
+            break;
         }
-        // println!("mod->{module:?}")
+        if path.len() >= 16 {
+            continue;
+        }
+        let choices = path.choices(&sample_space);
+        if path.doing_count() < 5 && choices.len() > 0 {
+            for next_mod in choices {
+                let mut path = path.clone();
+                path.mark(next_mod);
+                if path.is_done(&want) {
+                    path.next_sem();
+                    if path.len() < prl {
+                        prl = path.len();
+                        possible_routes.clear();
+                        possible_routes.push(path);
+                    } else if path.len() == prl {
+                        possible_routes.push(path);
+                    }
+                    continue;
+                }
+                pq.push(path);
+            }
+        } else {
+            path.next_sem();
+            pq.push(path);
+        }
+    }
+    possible_routes.sort_by(|a, b| b.mod_count().cmp(&a.mod_count()));
+    for i in possible_routes {
+        println!("~~~~~~~~~~~~~~~~~~~~~~~~~~\n{i:?}");
     }
 }

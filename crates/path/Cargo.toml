@@ -1,0 +1,13 @@
+[package]
+name = "path"
+version = "0.0.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+prereqtree = { version = "0.0.1", path = "../prereqtree" }
+types = { version = "0.0.1", path = "../types" }
+
+[lib]
+doctest = false
