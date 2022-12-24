@@ -2,7 +2,7 @@
 # @sh scripts/debug.sh release fetcher
 
 call:
-	make build_release
+	make test
 
 test:
 	cargo test --workspace
