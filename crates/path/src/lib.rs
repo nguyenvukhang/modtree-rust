@@ -20,7 +20,7 @@ impl Path {
     pub fn new() -> Self {
         Self {
             done: HashSet::new(),
-            global_sem: 0,
+            global_sem: 1,
             doing: vec![],
             record: vec![],
         }
@@ -56,7 +56,7 @@ impl Path {
 
     /// Gets the actual semester: a value in [1, 4]
     fn sem(&self) -> usize {
-        self.global_sem % 4 + 1
+        self.global_sem % 4
     }
 
     /// Get number of modules currently doing.
@@ -119,6 +119,7 @@ impl fmt::Debug for Path {
         f.debug_struct("Path")
             .field("record", &self.record)
             .field("global_sem", &self.global_sem)
+            .field("doing", &self.doing)
             .finish()
     }
 }
