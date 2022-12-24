@@ -10,7 +10,10 @@ async fn db() {
     let m = Client::debug_init().await.unwrap();
     let top = m.find_one("CS3244", "2022/2023").await.unwrap();
     let sample_space = m
-        .flatten_requirements(vec!["CS3244".to_string()], "2022/2023")
+        .flatten_requirements(
+            vec!["CS3244".to_string(), "CS3216".to_string()],
+            "2022/2023",
+        )
         .await
         .unwrap();
     println!("{sample_space:?}");
@@ -33,44 +36,54 @@ async fn main() {
 
     // List of possible paths to take that reaches CS3244
     let mut possible_routes = vec![];
+    // Possible routes length
     let mut prl = usize::MAX;
 
     let mut pq: BinaryHeap<Path> = BinaryHeap::new();
     pq.push(Path::new());
     // set the modules that want to be completed
-    // let want = vec!["CS3244".to_string(), "CS3216".to_string()];
-    let want = vec!["CS3244".to_string()];
+    let want = vec!["CS3244".to_string(), "CS3216".to_string()];
+    // let want = vec!["CS3244".to_string()];
 
     while let Some(mut path) = pq.pop() {
         println!("{}", pq.len());
         println!("{path:?}");
+        // check if done, and if shorter then update best path
+        if path.is_done(&want) {
+            if path.len() < prl {
+                prl = path.len(); // update shortest path length
+                possible_routes.clear();
+                possible_routes.push(path);
+            } else if path.len() == prl {
+                possible_routes.push(path);
+            }
+            continue;
+        }
+        // dijkstra assumption
         if path.len() > prl {
             break;
         }
         if path.len() >= 16 {
             continue;
         }
+        // Generate list of choices
         let choices = path.choices(&sample_space);
+
+        // go to next sem only if no mods left to do,
+        // or if the doing count has exceeded limit
+        if choices.len() == 0 || path.doing_count() >= 5 {
+            path.next_sem();
+            possible_routes.push(path);
+            continue;
+        }
+
+        // else, go through the choices and add them to the queue
         if path.doing_count() < 5 && choices.len() > 0 {
             for next_mod in choices {
                 let mut path = path.clone();
                 path.mark(next_mod);
-                if path.is_done(&want) {
-                    path.next_sem();
-                    if path.len() < prl {
-                        prl = path.len();
-                        possible_routes.clear();
-                        possible_routes.push(path);
-                    } else if path.len() == prl {
-                        possible_routes.push(path);
-                    }
-                    continue;
-                }
                 pq.push(path);
             }
-        } else {
-            path.next_sem();
-            pq.push(path);
         }
     }
     possible_routes.sort_by(|a, b| b.mod_count().cmp(&a.mod_count()));
