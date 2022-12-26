@@ -1,44 +1,33 @@
-use std::ops::Index;
-
 /// An iterator to iterate through all the `n`-length combinations in an
 /// iterator.
-pub struct Combinations<I: Iterator> {
+pub struct Combinations<T> {
     n: usize,
     indices: Vec<usize>,
-    pool: LazyBuffer<I>,
+    pool: Vec<T>,
     first: bool,
 }
 
 /// Create a new `Combinations` from a clonable iterator.
-pub fn combinations<I>(iter: I, n: usize) -> Combinations<I>
+pub fn combinations<T>(pool: Vec<T>, n: usize) -> Combinations<T>
 where
-    I: Iterator,
+    T: Sized,
 {
     let mut indices: Vec<usize> = Vec::with_capacity(n);
     for i in 0..n {
         indices.push(i);
     }
-    let mut pool: LazyBuffer<I> = LazyBuffer::new(iter);
-    for _ in 0..n {
-        if !pool.get_next() {
-            break;
-        }
-    }
-    Combinations { n: n, indices: indices, pool: pool, first: true }
+    Combinations { n: n, indices: indices, pool, first: true }
 }
 
-impl<I> Iterator for Combinations<I>
+impl<T> Iterator for Combinations<T>
 where
-    I: Iterator,
-    I::Item: Clone,
+    T: Clone,
 {
-    type Item = Vec<I::Item>;
+    type Item = Vec<T>;
     fn next(&mut self) -> Option<Self::Item> {
-        let mut pool_len = self.pool.len();
-        if self.pool.is_done() {
-            if pool_len == 0 || self.n > pool_len {
-                return None;
-            }
+        let pool_len = self.pool.len();
+        if pool_len == 0 || self.n > pool_len {
+            return None;
         }
 
         if self.first {
@@ -48,13 +37,6 @@ where
         } else {
             // Scan from the end, looking for an index to increment
             let mut i: usize = self.n - 1;
-
-            // Check if we need to consume more from the iterator
-            if self.indices[i] == pool_len - 1 && !self.pool.is_done() {
-                if self.pool.get_next() {
-                    pool_len += 1;
-                }
-            }
 
             while self.indices[i] == i + pool_len - self.n {
                 if i > 0 {
@@ -83,70 +65,9 @@ where
     }
 }
 
-#[derive(Debug)]
-struct LazyBuffer<I: Iterator> {
-    it: I,
-    done: bool,
-    buffer: Vec<I::Item>,
-}
-
-impl<I> LazyBuffer<I>
-where
-    I: Iterator,
-{
-    pub fn new(it: I) -> LazyBuffer<I> {
-        let mut it = it;
-        let mut buffer = Vec::new();
-        let done;
-        if let Some(first) = it.next() {
-            buffer.push(first);
-            done = false;
-        } else {
-            done = true;
-        }
-        LazyBuffer { it: it, done: done, buffer: buffer }
-    }
-
-    pub fn len(&self) -> usize {
-        self.buffer.len()
-    }
-
-    pub fn is_done(&self) -> bool {
-        self.done
-    }
-
-    pub fn get_next(&mut self) -> bool {
-        if self.done {
-            return false;
-        }
-        let next_item = self.it.next();
-        match next_item {
-            Some(x) => {
-                self.buffer.push(x);
-                true
-            }
-            None => {
-                self.done = true;
-                false
-            }
-        }
-    }
-}
-
-impl<I> Index<usize> for LazyBuffer<I>
-where
-    I: Iterator,
-    I::Item: Sized,
-{
-    type Output = I::Item;
-    fn index<'b>(&'b self, _index: usize) -> &'b I::Item {
-        self.buffer.index(_index)
-    }
-}
-
 #[test]
 fn combinations_test() {
-    let mut c = combinations(vec![1, 2, 3, 4, 5].into_iter(), 3);
+    let mut c = combinations(vec![1, 2, 3, 4, 5], 3);
     while let Some(k) = c.next() {
         println!("{k:?}");
     }
