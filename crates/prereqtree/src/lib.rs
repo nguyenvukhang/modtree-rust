@@ -219,6 +219,8 @@ impl PrereqTree {
     }
 
     /// Inserts a module and its expanded PrereqTree into the current tree.
+    /// TODO: account for the case where the module code is not in the current graph.
+    /// or just write another method for that.
     pub fn insert(&mut self, module_code: &str, tree: &PrereqTree) {
         fn apply(v: Vec<PrereqTree>, code: &str, tree: &T) -> Vec<T> {
             v.into_iter().filter_map(|t| f(t, code, tree)).collect()

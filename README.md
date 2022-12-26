@@ -8,57 +8,65 @@ per sem.
 **Goal**: Select some modules, `modtree` outputs a Semester List of
 which modules to take when. Hard-coded maximum of 5 mods per sem.
 
-## Endgame I/O
+## Data source
+
+Since everything here is planning for the future, data from the most
+current AY will be used.
+
+## Merging trees
+
+Let the final target be a prereqtree itself of AND trees.
+
+## Possible modules to take
+
+Scan the tree for these modules:
+
+1. no pre-requsites remaining
+2. available for the current semester
+
+If there are `n` such modules, then generate a list of `n` choose 5
+modules, and branch all those into separate paths to search.
+
+## Priority queue of state nodes
+
+Sort options are:
+
+1. By modules left to unlock the master tree. (But that's what we're
+   trying to find)
+2. By number of sems required to complete.
+3. Conditionally by modules left to unlock, condition being that there
+   are no duplicates remaining in the tree.
+4. By number of modules left in the pre-req tree. (lower accuracy than
+   naive min-path)
+5. Sort by naive-best-case min-path: Length of min-path minus number
+   of duplicates found in the graph.
+   - this might work because dijkstra ends early when paths remaining
+     are all longer, and this assures that all possible paths are
+     actually scanned.
+
+# Target I/O
 
 Inputs
 
 - input modules that will be done by which year, which sem.
-- these are `condition` modules: won't be decided by the algo.
-- input modules that want to be done by which year, which sem.
-- these are `target` modules: required to be done else query fails.
-- input module limit per sem.
+- (hard-code) 5 module limit per sem
 
-Processing
+Pre-Processing
 
-> since everything here is planning for the future, data from the most
-> current AY will be used.
+- create a run-specific prereqtree of the AND variant.
+- put all the target modules in this tree.
+- expand this tree and re-insert all modules fetched from database.
+- result is one large tree where if it's fulfilled, then all the
+  targets are met.
 
-- Global-flatten all `target` modules's prereqtrees.
-- Combine them to one set.
-- Remove the `condition` modules.
-- Sort them topologically into a queue.
-- Poll this queue repeatedly, filling in each sem in the plan.
-- Constantly check for sem availability.
-- Prioritize `target` modules.
-- Every time a sem is incremented, check the `condition` modules for
-  updates.
+Tree Traversal
 
-## Mid-impl optimization ideas
-
-- cache full modules to memory to be reduce calls to db
-  (global_flatten and topological_sort both use similar calls)
-
-## Module completion
-
-Pre-requisite trees are not going to be directly related to inter-node
-relations.
-
-They will only define the `Percentage of Completion` of a module.
-
-In a user's graph, each module will be assigned a value. Call it
-"Modules left to unlock." Completed modules will be assigned '0'.
-
-As you complete modules, you will inadvertently half-complete the
-pre-requisite of some modules. Call those modules `Modules Up Next`.
-
-Conditions for a module to be Up Next:
-
-- must have more than one pre-requisite.
-- at least one pre-requisite is completed by the user.
-- [FUTURE] account for semester-exclusive modules
-
-For consistency, only modules that have pre-requsites that are
-completed by the user are shown.
-
-As you complete more modules, more Modules Up Next will show up, and
-their Completion state will be shown too.
+- run a Dijkstra-like search where each node is the current state of
+  all the modules taken.
+- All nodes represent the start/end of a sem, never half-way through
+  it. At each sem, the student takes all modules possible until the
+  module limit is hit.
+- To get possible modules to take each sem, see the section on
+  [possible modules to take](#possible-modules-to-take)
+- Branch out all possibilities, increment their semesters, and push
+  these into the priority queue.
