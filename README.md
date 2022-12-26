@@ -44,6 +44,19 @@ Sort options are:
      are all longer, and this assures that all possible paths are
      actually scanned.
 
+## Bounds
+
+Can get a maximum min-path # of modules to take by applying min-path
+method on master prereqtree. This will include duplicates, and thus
+will be an **upper** bound on the # of modules.
+
+Maximum min-path means that the min-path to completing the master
+prereqtree is guaranteed to have equal or less modules done than the
+number found.
+
+So immediately drop any path that have more modules done than this
+number on the Dijkstra search.
+
 # Target I/O
 
 Inputs
