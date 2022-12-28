@@ -91,12 +91,24 @@ pub async fn test_schema() {
 ///
 /// Requires either an internet connection (to pull from NUSMods), or an existing
 /// local cache of NUSMods data.
-async fn build(db: &Database) -> Result<()> {
+pub async fn build(db: &Database) -> Result<()> {
     let mods = db.modules();
     mods.drop().await?;
     mods.import_academic_year("2021-2022", None).await?;
     mods.import_academic_year("2022-2023", None).await?;
     Ok(())
+}
+
+/// Builds an entire dump from scratch.
+///
+/// Requires either an internet connection (to pull from NUSMods), or an existing
+/// local cache of NUSMods data.
+pub async fn bootstrap() {
+    let mut client = Client::new("localhost:27017").await.unwrap();
+    client.assert_running().unwrap();
+    let db = client.modtree_db();
+    build(&db).await.unwrap();
+    create(db.name()).unwrap();
 }
 
 /// Validate the state of a particular database.

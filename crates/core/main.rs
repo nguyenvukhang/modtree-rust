@@ -28,8 +28,7 @@ async fn sample_space(m: &ModuleCollection, codes: Vec<&str>) -> Vec<Module> {
     .unwrap()
 }
 
-#[tokio::main]
-async fn main() {
+async fn algo() {
     use database::Client;
     let m = Client::debug_init().await.unwrap();
     // let sample_space = sample_space(&m, vec!["CS3244", "CS3216"]).await;
@@ -97,4 +96,9 @@ async fn main() {
     for i in possible_routes {
         println!("ok: {i:?}");
     }
+}
+
+#[tokio::main]
+async fn main() {
+    algo().await;
 }
